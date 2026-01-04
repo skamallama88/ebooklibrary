@@ -84,15 +84,15 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+            <div className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl relative flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
-                <div className="p-6 border-b flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-xl shadow-2xl relative flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200 border dark:border-slate-800">
+                <div className="p-6 border-b dark:border-slate-800 flex items-center justify-between">
                     <div>
-                        <h3 className="text-xl font-bold text-slate-900">Import Books</h3>
-                        <p className="text-sm text-slate-500">Upload EPUB or PDF files to your library</p>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Import Books</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Upload EPUB or PDF files to your library</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400">
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -101,13 +101,13 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                     {/* Drag & Drop Area Placeholder */}
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group"
+                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
                     >
-                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                             <CloudArrowUpIcon className="w-6 h-6" />
                         </div>
-                        <p className="text-sm font-medium text-slate-700">Click to select files</p>
-                        <p className="text-xs text-slate-400">Supports EPUB and PDF</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Click to select files</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">Supports EPUB and PDF</p>
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -121,12 +121,12 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                     {/* File List */}
                     <div className="space-y-2">
                         {files.map(file => (
-                            <div key={file.name} className="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
-                                <DocumentIcon className="w-8 h-8 text-blue-500 shrink-0" />
+                            <div key={file.name} className="flex items-center space-x-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 group">
+                                <DocumentIcon className="w-8 h-8 text-blue-500 dark:text-blue-400 shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-700 truncate">{file.name}</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
                                     <div className="flex items-center space-x-2">
-                                        <p className="text-[10px] text-slate-400">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                                         {uploadStatuses[file.name] && (
                                             <span className={clsx(
                                                 "text-[10px] font-bold uppercase",
@@ -139,7 +139,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                                         )}
                                     </div>
                                     {uploadStatuses[file.name]?.status === 'uploading' && (
-                                        <div className="mt-2 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                        <div className="mt-2 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                             <div
                                                 className="h-full bg-blue-500 transition-all duration-300"
                                                 style={{ width: `${uploadStatuses[file.name].progress}%` }}
@@ -157,7 +157,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                                 ) : (
                                     <button
                                         onClick={() => removeFile(file.name)}
-                                        className="p-1 hover:bg-white rounded text-slate-400 group-hover:text-red-500"
+                                        className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 group-hover:text-red-500"
                                     >
                                         <XMarkIcon className="w-5 h-5" />
                                     </button>
@@ -167,14 +167,14 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                     </div>
                 </div>
 
-                <div className="p-6 border-t flex items-center justify-end space-x-3">
-                    <button onClick={onClose} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors">
+                <div className="p-6 border-t dark:border-slate-800 flex items-center justify-end space-x-3">
+                    <button onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                         Cancel
                     </button>
                     <button
                         onClick={handleUpload}
                         disabled={files.length === 0 || Object.values(uploadStatuses).some(s => s.status === 'uploading')}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:shadow-none"
+                        className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none disabled:opacity-50 disabled:shadow-none"
                     >
                         Upload {files.length > 0 ? files.length : ''} {files.length === 1 ? 'Book' : 'Books'}
                     </button>

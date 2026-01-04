@@ -5,6 +5,7 @@ import LibraryGrid from './components/LibraryGrid';
 import BookDetailPanel from './components/BookDetailPanel';
 import Reader from './components/Reader';
 import ImportModal from './components/ImportModal';
+import Topbar from './components/Topbar';
 import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import api from './api';
 import { useAuth } from './AuthContext';
@@ -20,6 +21,34 @@ function App() {
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
   const [readerBookId, setReaderBookId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('theme', newDarkMode ? 'dark' : 'light');
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // Initialize theme on mount
+  useState(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  });
+
   const limit = 100;
 
   const { data: books, isLoading, error, refetch } = useQuery({
@@ -58,7 +87,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden dark:bg-slate-900">
       <Sidebar
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
@@ -69,15 +98,28 @@ function App() {
         }}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-200">
+        <Topbar
+          selectedBookId={selectedBookId}
+          onAddBooks={() => setShowImportModal(true)}
+          onEditBook={(id) => setSelectedBookId(id)}
+          onDownloadBook={(id) => {
+            const book = books?.items?.find((b: any) => b.id === id);
+            if (book?.file_path) {
+              window.open(`${api.defaults.baseURL}/books/${id}/download`, '_blank');
+            }
+          }}
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+        />
         {/* Header */}
-        <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">
           <div className="flex-1 max-w-2xl relative">
             <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search library..."
-              className="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm"
+              className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-700 transition-all outline-none text-sm dark:text-slate-100"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -101,7 +143,7 @@ function App() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 transition-colors duration-200">
           {error ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -124,23 +166,23 @@ function App() {
               />
 
               {/* Pagination */}
-              <div className="p-4 bg-white border-t flex items-center justify-between shadow-sm">
-                <div className="text-sm text-slate-500">
-                  Showing <span className="font-medium text-slate-900">{books?.items?.length || 0}</span> of <span className="font-medium text-slate-900">{books?.total || 0}</span> books
+              <div className="p-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800 flex items-center justify-between shadow-sm transition-colors duration-200">
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Showing <span className="font-medium text-slate-900 dark:text-slate-100">{books?.items?.length || 0}</span> of <span className="font-medium text-slate-900 dark:text-slate-100">{books?.total || 0}</span> books
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setPage(p => Math.max(0, p - 1))}
                     disabled={page === 0 || isLoading}
-                    className="px-3 py-1.5 border rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 border dark:border-slate-700 rounded text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors dark:text-slate-200"
                   >
                     Previous
                   </button>
-                  <span className="text-sm px-2 text-slate-600">Page {page + 1} of {Math.ceil((books?.total || 0) / limit) || 1}</span>
+                  <span className="text-sm px-2 text-slate-600 dark:text-slate-400">Page {page + 1} of {Math.ceil((books?.total || 0) / limit) || 1}</span>
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={(page + 1) * limit >= (books?.total || 0) || isLoading}
-                    className="px-3 py-1.5 border rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 transition-colors"
+                    className="px-3 py-1.5 border dark:border-slate-700 rounded text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors dark:text-slate-200"
                   >
                     Next
                   </button>
