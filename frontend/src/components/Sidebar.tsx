@@ -26,11 +26,18 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
     const [newCollectionName, setNewCollectionName] = React.useState('');
     const [editingCollectionId, setEditingCollectionId] = React.useState<number | null>(null);
     const [editingCollectionName, setEditingCollectionName] = React.useState('');
-    const [collectionsCollapsed, setCollectionsCollapsed] = React.useState(false);
-    const [authorsCollapsed, setAuthorsCollapsed] = React.useState(false);
-    const [publishersCollapsed, setPublishersCollapsed] = React.useState(false);
-    const [tagsCollapsed, setTagsCollapsed] = React.useState(false);
+    const [collectionsCollapsed, setCollectionsCollapsed] = React.useState(() => localStorage.getItem('sidebar_collections_collapsed') === 'true');
+    const [authorsCollapsed, setAuthorsCollapsed] = React.useState(() => localStorage.getItem('sidebar_authors_collapsed') === 'true');
+    const [publishersCollapsed, setPublishersCollapsed] = React.useState(() => localStorage.getItem('sidebar_publishers_collapsed') === 'true');
+    const [tagsCollapsed, setTagsCollapsed] = React.useState(() => localStorage.getItem('sidebar_tags_collapsed') === 'true');
     const [isScanning, setIsScanning] = React.useState(false);
+
+    React.useEffect(() => {
+        localStorage.setItem('sidebar_collections_collapsed', String(collectionsCollapsed));
+        localStorage.setItem('sidebar_authors_collapsed', String(authorsCollapsed));
+        localStorage.setItem('sidebar_publishers_collapsed', String(publishersCollapsed));
+        localStorage.setItem('sidebar_tags_collapsed', String(tagsCollapsed));
+    }, [collectionsCollapsed, authorsCollapsed, publishersCollapsed, tagsCollapsed]);
 
     const { data: tags } = useQuery({
         queryKey: ['tags'],

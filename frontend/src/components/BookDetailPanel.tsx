@@ -166,7 +166,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                             <div className="aspect-[2/3] bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden shadow-md flex items-center justify-center border border-slate-200 dark:border-slate-700">
                                 {book.cover_path ? (
                                     <img
-                                        src={`http://localhost:8000/books/${book.id}/cover`}
+                                        src={`${api.defaults.baseURL}/books/${book.id}/cover`}
                                         alt={book.title}
                                         className="w-full h-full object-cover"
                                     />
@@ -363,13 +363,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                     ) : (
                         <>
                             <button
-                                onClick={() => {
-                                    if (book?.format === 'EPUB') {
-                                        onRead && onRead(book.id);
-                                    } else {
-                                        window.open(`http://localhost:8000/books/${book?.id}/file`, '_blank');
-                                    }
-                                }}
+                                onClick={() => book && onRead && onRead(book.id)}
                                 className="flex-2 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 shadow-sm"
                             >
                                 <span>Read Book</span>

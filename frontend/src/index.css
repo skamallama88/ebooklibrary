@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+
 @theme {
   --color-brand: #3b82f6;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
@@ -21,4 +24,12 @@ body {
   font-family: var(--font-sans);
   transition-property: color, background-color;
   transition-duration: 200ms;
+}
+
+.filter-dark-pdf canvas {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+.react-pdf__Page {
+  background-color: transparent !important;
 }
