@@ -4,6 +4,8 @@ import {
     flexRender,
     getCoreRowModel,
     useReactTable,
+    type SortingState,
+    type OnChangeFn,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { clsx } from 'clsx';
@@ -31,15 +33,78 @@ interface Book {
 
 const columnHelper = createColumnHelper<Book>();
 
+const IndeterminateCheckbox = ({
+    indeterminate,
+    className = "",
+    ...rest
+}: { indeterminate?: boolean } & React.HTMLProps<HTMLInputElement>) => {
+    const ref = React.useRef<HTMLInputElement>(null!)
+
+    React.useEffect(() => {
+        if (typeof indeterminate === 'boolean') {
+            ref.current.indeterminate = !rest.checked && indeterminate
+        }
+    }, [ref, indeterminate, rest.checked])
+
+    return (
+        <input
+            type="checkbox"
+            ref={ref}
+            className={className + " cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:border-slate-700"}
+            {...rest}
+        />
+    )
+}
+
+
 interface LibraryGridProps {
     data: Book[];
     isLoading?: boolean;
     selectedBookId?: number | null;
     onRowClick?: (book: Book) => void;
+    onSelectionChange?: (selectedIds: number[]) => void;
+    sorting?: SortingState;
+    onSortingChange?: OnChangeFn<SortingState>;
 }
 
-const LibraryGrid: React.FC<LibraryGridProps> = ({ data, isLoading, selectedBookId, onRowClick }) => {
+const LibraryGrid: React.FC<LibraryGridProps> = ({
+    data,
+    isLoading,
+    selectedBookId,
+    onRowClick,
+    onSelectionChange,
+    sorting = [],
+    onSortingChange
+}) => {
+    const [rowSelection, setRowSelection] = React.useState({})
+
     const columns = useMemo(() => [
+        {
+            id: 'select',
+            header: ({ table }: any) => (
+                <div className="flex justify-center w-full">
+                    <IndeterminateCheckbox
+                        {...{
+                            checked: table.getIsAllRowsSelected(),
+                            indeterminate: table.getIsSomeRowsSelected(),
+                            onChange: table.getToggleAllRowsSelectedHandler(),
+                        }}
+                    />
+                </div>
+            ),
+            cell: ({ row }: any) => (
+                <div className="flex justify-center w-full" onClick={(e) => e.stopPropagation()}>
+                    <IndeterminateCheckbox
+                        {...{
+                            checked: row.getIsSelected(),
+                            disabled: !row.getCanSelect(),
+                            indeterminate: row.getIsSomeSelected(),
+                            onChange: row.getToggleSelectedHandler(),
+                        }}
+                    />
+                </div>
+            ),
+        },
         columnHelper.accessor('title', {
             header: 'Title',
             cell: (info) => <span className="font-semibold text-slate-800 dark:text-slate-100">{info.getValue()}</span>,
@@ -81,8 +146,26 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({ data, isLoading, selectedBook
     const table = useReactTable({
         data,
         columns,
+        state: {
+            rowSelection,
+            sorting,
+        },
+        enableRowSelection: true,
+        onRowSelectionChange: setRowSelection,
+        onSortingChange: onSortingChange,
         getCoreRowModel: getCoreRowModel(),
+        manualSorting: true,
     });
+
+    // Notify parent of selection changes
+    React.useEffect(() => {
+        if (onSelectionChange) {
+            const selectedIds = Object.keys(rowSelection)
+                .map(index => data[parseInt(index)]?.id)
+                .filter(id => id !== undefined);
+            onSelectionChange(selectedIds);
+        }
+    }, [rowSelection, data, onSelectionChange]);
 
     const parentRef = useRef<HTMLDivElement>(null);
     const { rows } = table.getRowModel();
@@ -116,16 +199,26 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({ data, isLoading, selectedBook
                             {headerGroup.headers.map((header, i) => (
                                 <div
                                     key={header.id}
+                                    onClick={header.column.getToggleSortingHandler()}
                                     className={clsx(
-                                        "p-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider",
-                                        i === 0 ? "flex-1 min-w-[200px]" :
-                                            i === 1 ? "w-[200px] shrink-0" :
-                                                i === 2 ? "w-[120px] shrink-0" :
-                                                    i === 3 ? "w-[100px] shrink-0 text-center" :
-                                                        "w-[300px] shrink-0"
+                                        "p-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none",
+                                        header.column.getCanSort() ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" : "",
+                                        i === 0 ? "w-[48px] shrink-0" :
+                                            i === 1 ? "flex-1 min-w-[200px]" :
+                                                i === 2 ? "w-[200px] shrink-0" :
+                                                    i === 3 ? "w-[120px] shrink-0" :
+                                                        i === 4 ? "w-[100px] shrink-0 text-center" :
+                                                            "w-[300px] shrink-0"
                                     )}
                                 >
-                                    {flexRender(header.column.columnDef.header, header.getContext())}
+                                    <div className="flex items-center space-x-1">
+                                        <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                                        {header.column.getIsSorted() && (
+                                            <span className="text-blue-500">
+                                                {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -161,7 +254,9 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({ data, isLoading, selectedBook
                                 onClick={() => onRowClick && onRowClick(row.original)}
                                 className={clsx(
                                     "flex items-center transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 group-last:border-none w-full",
-                                    selectedBookId === row.original.id ? "bg-blue-50/80 dark:bg-blue-900/20" : "hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
+                                    row.getIsSelected() ? "bg-blue-50/80 dark:bg-blue-900/40" :
+                                        selectedBookId === row.original.id ? "bg-blue-50/80 dark:bg-blue-900/20" :
+                                            "hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
                                 )}
                                 style={{
                                     position: 'absolute',
@@ -177,11 +272,12 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({ data, isLoading, selectedBook
                                         key={cell.id}
                                         className={clsx(
                                             "p-3 truncate",
-                                            i === 0 ? "flex-1 min-w-[200px]" :
-                                                i === 1 ? "w-[200px] shrink-0" :
-                                                    i === 2 ? "w-[120px] shrink-0" :
-                                                        i === 3 ? "w-[100px] shrink-0 flex justify-center" :
-                                                            "w-[300px] shrink-0"
+                                            i === 0 ? "w-[48px] shrink-0" :
+                                                i === 1 ? "flex-1 min-w-[200px]" :
+                                                    i === 2 ? "w-[200px] shrink-0" :
+                                                        i === 3 ? "w-[120px] shrink-0" :
+                                                            i === 4 ? "w-[100px] shrink-0 flex justify-center" :
+                                                                "w-[300px] shrink-0"
                                         )}
                                     >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -31,8 +31,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
     };
 
     const handleUpload = async () => {
-        for (const file of files) {
-            if (uploadStatuses[file.name]?.status === 'success') continue;
+        const uploadPromises = files.map(async (file) => {
+            if (uploadStatuses[file.name]?.status === 'success') return;
 
             setUploadStatuses(prev => ({
                 ...prev,
@@ -64,10 +64,12 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                     [file.name]: { ...prev[file.name], status: 'error', progress: 0, error: err.response?.data?.detail || "Upload failed" }
                 }));
             }
-        }
+        });
 
-        const allSuccess = files.every(f => uploadStatuses[f.name]?.status === 'success');
-        if (allSuccess) {
+        const results = await Promise.allSettled(uploadPromises);
+        const someSuccess = results.some(r => r.status === 'fulfilled');
+
+        if (someSuccess) {
             setTimeout(() => {
                 onSuccess();
                 onClose();

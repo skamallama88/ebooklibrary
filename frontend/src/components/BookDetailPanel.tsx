@@ -142,7 +142,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
     if (!bookId) return null;
 
     return (
-        <div className={`fixed inset-y-0 right-0 w-96 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800 ${bookId ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`absolute top-12 bottom-0 right-0 w-96 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800 ${bookId ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="h-full flex flex-col">
                 {/* Header */}
                 <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">

@@ -18,9 +18,10 @@ function App() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
+  const [selectedBookIds, setSelectedBookIds] = useState<number[]>([]);
   const [readerBookId, setReaderBookId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [sorting, setSorting] = useState<any[]>([]);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' ||
@@ -52,7 +53,7 @@ function App() {
   const limit = 100;
 
   const { data: books, isLoading, error, refetch } = useQuery({
-    queryKey: ['books', searchTerm, activeFilter, page],
+    queryKey: ['books', searchTerm, activeFilter, page, sorting],
     enabled: !!user,
     queryFn: async () => {
       const params: any = {
@@ -63,16 +64,52 @@ function App() {
 
       if (activeFilter.startsWith('tag:')) {
         params.tag = activeFilter.split(':')[1];
+      } else if (activeFilter.startsWith('author:')) {
+        params.author = activeFilter.split(':')[1];
+      } else if (activeFilter.startsWith('publisher:')) {
+        params.publisher = activeFilter.split(':')[1];
       } else if (activeFilter.startsWith('collection:')) {
         params.collection_id = Number(activeFilter.split(':')[1]);
       } else if (activeFilter === 'recent') {
         params.sort_by = 'recent';
       }
 
+      if (sorting.length > 0) {
+        params.sort_by = sorting[0].id;
+        params.sort_order = sorting[0].desc ? 'desc' : 'asc';
+      }
+
       const response = await api.get('/books/', { params });
       return response.data;
     },
   });
+
+  const handleDeleteBooks = async (ids: number[]) => {
+    if (!confirm(`Are you sure you want to delete ${ids.length} book(s)?`)) return;
+    try {
+      await api.delete('/books/bulk', { data: ids });
+      setSelectedBookIds([]);
+      refetch();
+    } catch (err) {
+      console.error("Failed to delete books", err);
+    }
+  };
+
+  const handleAddToCollection = async (ids: number[]) => {
+    const colId = prompt("Enter Collection ID (for now):");
+    if (!colId) return;
+    try {
+      // Get current collection and add new books
+      const colRes = await api.get(`/collections/${colId}`);
+      const currentBookIds = colRes.data.books.map((b: any) => b.id);
+      const newBookIds = Array.from(new Set([...currentBookIds, ...ids]));
+      await api.patch(`/collections/${colId}`, { book_ids: newBookIds });
+      alert("Books added to collection");
+      refetch();
+    } catch (err) {
+      console.error("Failed to add to collection", err);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -98,17 +135,19 @@ function App() {
         }}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-200">
+      <main className="relative flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-200">
         <Topbar
-          selectedBookId={selectedBookId}
+          selectedBookIds={selectedBookIds}
           onAddBooks={() => setShowImportModal(true)}
-          onEditBook={(id) => setSelectedBookId(id)}
-          onDownloadBook={(id) => {
-            const book = books?.items?.find((b: any) => b.id === id);
-            if (book?.file_path) {
-              window.open(`${api.defaults.baseURL}/books/${id}/download`, '_blank');
-            }
+          onEditBook={(id) => setSelectedBookIds([id])}
+          onDownloadBooks={(ids) => {
+            ids.forEach(id => {
+              window.open(`${api.defaults.baseURL}/books/${id}/file`, '_blank');
+            });
           }}
+          onDeleteBooks={handleDeleteBooks}
+          onAddToCollection={handleAddToCollection}
+          onRead={(id) => setReaderBookId(id)}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
         />
@@ -133,12 +172,6 @@ function App() {
             >
               <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              Import Books
-            </button>
           </div>
         </header>
 
@@ -161,8 +194,11 @@ function App() {
               <LibraryGrid
                 data={books?.items || []}
                 isLoading={isLoading}
-                selectedBookId={selectedBookId}
-                onRowClick={(book) => setSelectedBookId(book.id)}
+                selectedBookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
+                onRowClick={(book) => setSelectedBookIds([book.id])}
+                onSelectionChange={setSelectedBookIds}
+                sorting={sorting}
+                onSortingChange={setSorting}
               />
 
               {/* Pagination */}
@@ -191,14 +227,14 @@ function App() {
             </>
           )}
         </div>
-      </main>
 
-      <BookDetailPanel
-        bookId={selectedBookId}
-        onClose={() => setSelectedBookId(null)}
-        onUpdate={() => refetch()}
-        onRead={(id) => setReaderBookId(id)}
-      />
+        <BookDetailPanel
+          bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
+          onClose={() => setSelectedBookIds([])}
+          onUpdate={() => refetch()}
+          onRead={(id) => setReaderBookId(id)}
+        />
+      </main>
 
       {readerBookId && (
         <Reader

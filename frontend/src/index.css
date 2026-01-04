@@ -1,18 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand: #3b82f6;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
 :root {
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --background: var(--color-slate-50);
+  --foreground: var(--color-slate-900);
+}
+
+.dark {
+  --background: var(--color-slate-950);
+  --foreground: var(--color-slate-100);
 }
 
 body {
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
-  @apply bg-slate-50 text-slate-900 transition-colors duration-200;
-}
-
-.dark body {
-  @apply bg-slate-950 text-slate-100;
-}
-
-@theme {
-  --color-brand: #3b82f6;
+  transition-property: color, background-color;
+  transition-duration: 200ms;
 }

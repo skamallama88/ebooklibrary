@@ -23,6 +23,19 @@ class Author(AuthorBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+# Collection schemas
+class CollectionBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class CollectionCreate(CollectionBase):
+    book_ids: List[int] = []
+
+class CollectionUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    book_ids: Optional[List[int]] = None
+
 # Book schemas
 class BookBase(BaseModel):
     title: str
@@ -57,6 +70,7 @@ class Book(BookBase):
     updated_at: Optional[datetime] = None
     authors: List[Author] = []
     tags: List[Tag] = []
+    collections: List['Collection'] = []
     model_config = ConfigDict(from_attributes=True)
 
 class PaginatedBookList(BaseModel):
@@ -64,19 +78,6 @@ class PaginatedBookList(BaseModel):
     total: int
     page: int
     limit: int
-
-# Collection schemas
-class CollectionBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class CollectionCreate(CollectionBase):
-    book_ids: List[int] = []
-
-class CollectionUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    book_ids: Optional[List[int]] = None
 
 class Collection(CollectionBase):
     id: int

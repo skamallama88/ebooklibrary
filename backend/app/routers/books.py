@@ -16,14 +16,27 @@ def get_books(
     search: Optional[str] = None,
     tag: Optional[str] = None,
     author: Optional[str] = None,
+    publisher: Optional[str] = None,
     collection_id: Optional[int] = None,
     sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "asc",
     db: Session = Depends(database.get_db)
 ):
     query = db.query(models.Book)
     
     if search:
-        query = query.filter(models.Book.title.ilike(f"%{search}%"))
+        # Search Title, Authors, and Tags
+        search_filter = models.Book.title.ilike(f"%{search}%")
+        
+        # Add Author search
+        query = query.outerjoin(models.Book.authors)
+        search_filter = search_filter | models.Author.name.ilike(f"%{search}%")
+        
+        # Add Tag search
+        query = query.outerjoin(models.Book.tags)
+        search_filter = search_filter | models.Tag.name.ilike(f"%{search}%")
+        
+        query = query.filter(search_filter)
     
     if tag:
         query = query.join(models.Book.tags).filter(models.Tag.name == tag)
@@ -31,15 +44,29 @@ def get_books(
     if author:
         query = query.join(models.Book.authors).filter(models.Author.name == author)
         
+    if publisher:
+        query = query.filter(models.Book.publisher == publisher)
+        
     if collection_id:
         query = query.join(models.Book.collections).filter(models.Collection.id == collection_id)
     
-    total = query.count()
+    total = query.distinct().count()
     
-    if sort_by == "recent":
-        query = query.order_by(models.Book.created_at.desc())
+    # Sorting logic
+    order_col = models.Book.title
+    if sort_by == "recent" or sort_by == "created_at":
+        order_col = models.Book.created_at
+    elif sort_by == "rating":
+        order_col = models.Book.rating
+    elif sort_by == "title":
+        order_col = models.Book.title
         
-    books = query.offset(skip).limit(limit).all()
+    if sort_order == "desc":
+        query = query.order_by(order_col.desc())
+    else:
+        query = query.order_by(order_col.asc())
+        
+    books = query.distinct().offset(skip).limit(limit).all()
     
     return {
         "items": books,
@@ -48,6 +75,24 @@ def get_books(
         "limit": limit
     }
 
+@router.delete("/bulk", status_code=204)
+def bulk_delete_books(book_ids: List[int], db: Session = Depends(database.get_db)):
+    books = db.query(models.Book).filter(models.Book.id.in_(book_ids)).all()
+    for book in books:
+        # Delete cover if exists
+        if book.cover_path:
+            cover_storage = os.getenv("COVER_STORAGE_PATH", "/data/covers")
+            full_path = os.path.join(cover_storage, book.cover_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+        
+        # Delete file if exists (optional, maybe we want to keep it on disk?)
+        # For now, let's keep it on disk but remove from database
+        db.delete(book)
+    
+    db.commit()
+    return None
+
 @router.get("/tags", response_model=List[schemas.Tag])
 def get_tags(db: Session = Depends(database.get_db)):
     return db.query(models.Tag).all()
@@ -55,6 +100,11 @@ def get_tags(db: Session = Depends(database.get_db)):
 @router.get("/authors", response_model=List[schemas.Author])
 def get_authors(db: Session = Depends(database.get_db)):
     return db.query(models.Author).all()
+
+@router.get("/publishers", response_model=List[str])
+def get_publishers(db: Session = Depends(database.get_db)):
+    publishers = db.query(models.Book.publisher).filter(models.Book.publisher != None).distinct().all()
+    return [p[0] for p in publishers]
 
 @router.post("/scan", status_code=202)
 def trigger_scan(background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
