@@ -37,6 +37,7 @@ class User(Base):
     
     progress = relationship("ReadingProgress", back_populates="user")
     collections = relationship("Collection", back_populates="owner")
+    bookmarks = relationship("Bookmark", back_populates="user")
 
 class Author(Base):
     __tablename__ = "authors"
@@ -72,6 +73,7 @@ class Book(Base):
     tags = relationship("Tag", secondary=book_tags, back_populates="books")
     progress = relationship("ReadingProgress", back_populates="book")
     collections = relationship("Collection", secondary=collection_books, back_populates="books")
+    bookmarks = relationship("Bookmark", back_populates="book")
 
 class Collection(Base):
     __tablename__ = "collections"
@@ -95,3 +97,15 @@ class ReadingProgress(Base):
     
     user = relationship("User", back_populates="progress")
     book = relationship("Book", back_populates="progress")
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    cfi = Column(String, nullable=False)
+    label = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User", back_populates="bookmarks")
+    book = relationship("Book", back_populates="bookmarks")

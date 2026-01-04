@@ -121,3 +121,19 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+# Bookmark schemas
+class BookmarkBase(BaseModel):
+    cfi: str
+    label: Optional[str] = None
+
+class BookmarkCreate(BookmarkBase):
+    pass
+
+class Bookmark(BookmarkBase):
+    id: int
+    user_id: int
+    book_id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+

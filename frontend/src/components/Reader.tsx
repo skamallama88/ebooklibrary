@@ -7,7 +7,11 @@ import {
     AdjustmentsHorizontalIcon,
     MagnifyingGlassPlusIcon,
     MagnifyingGlassMinusIcon,
+    ListBulletIcon,
+    BookmarkIcon,
+    TrashIcon,
 } from '@heroicons/react/24/outline';
+import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 import { Document, Page, pdfjs } from 'react-pdf';
 import api from '../api';
 import { clsx } from 'clsx';
@@ -35,6 +39,12 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
+
+    // TOC & Bookmarks
+    const [showSidebar, setShowSidebar] = useState(false);
+    const [activeTab, setActiveTab] = useState<'chapters' | 'bookmarks'>('chapters');
+    const [bookmarks, setBookmarks] = useState<any[]>([]);
+
     // Load settings from localStorage or use defaults
     const [fontSize, setFontSize] = useState(() => {
         try {
@@ -79,6 +89,13 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
         }));
     }, [fontSize, theme, isTwoPage, fontFamily, flowMode]);
 
+    // Fetch bookmarks
+    useEffect(() => {
+        api.get(`/bookmarks/${bookId}`)
+            .then(res => setBookmarks(res.data))
+            .catch(err => console.error("Failed to fetch bookmarks", err));
+    }, [bookId]);
+
     const themes = {
         light: { body: { background: '#ffffff', color: '#1a1a1b' } },
         sepia: { body: { background: '#f4ecd8', color: '#5b4636' } },
@@ -112,6 +129,9 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
         });
     };
 
+    const [toc, setToc] = useState<any[]>([]);
+    const bookRef = useRef<any>(null);
+
     useEffect(() => {
         let isMounted = true;
         let book: any;
@@ -124,7 +144,9 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 if (!isMounted) return;
 
                 const bookFormat = metaRes.data.format?.toLowerCase() || 'epub';
-                setFormat(bookFormat as 'epub' | 'pdf');
+                if (isMounted && format !== bookFormat) {
+                    setFormat(bookFormat as 'epub' | 'pdf');
+                }
                 setTitle(metaRes.data.title);
 
                 // Fetch the book file as a blob
@@ -138,21 +160,50 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 if (bookFormat === 'pdf') {
                     setPdfBlob(blob);
                     setIsLoading(false);
+
+                    // Fetch PDF outline (chapters)
+                    const loadingTask = pdfjs.getDocument(URL.createObjectURL(blob));
+                    const pdf = await loadingTask.promise;
+                    const outline = await pdf.getOutline();
+
+                    if (isMounted && outline) {
+                        const chapters = await Promise.all(outline.map(async (item) => {
+                            let pageNum = 1;
+                            if (typeof item.dest === 'string') {
+                                const dest = await pdf.getDestination(item.dest);
+                                if (dest) {
+                                    const pageRef = dest[0];
+                                    pageNum = (await pdf.getPageIndex(pageRef)) + 1;
+                                }
+                            } else if (Array.isArray(item.dest)) {
+                                const pageRef = item.dest[0];
+                                pageNum = (await pdf.getPageIndex(pageRef)) + 1;
+                            }
+                            return { title: item.title, page: pageNum, href: String(pageNum) };
+                        }));
+                        setToc(chapters);
+                    }
+
                     // Fetch saved progress for PDF
                     api.get(`/progress/${bookId}`).then(res => {
-                        const savedPage = res.data.cfi; // We'll store page number in cfi field for simplicity
+                        const savedPage = res.data.cfi;
                         if (savedPage && !isNaN(parseInt(savedPage))) {
                             setPageNumber(parseInt(savedPage));
                         }
                     });
                 } else {
                     book = ePub(blob);
+                    bookRef.current = book;
 
                     book.ready.then(() => {
                         if (isMounted) {
                             setTitle((book as any).package.metadata.title || metaRes.data.title);
+                            setToc(book.navigation.toc || []);
                         }
                         return book.locations.generate(1000);
+                    }).then(() => {
+                        // Refresh TOC with percentages if needed, or just relay on locations
+                        if (isMounted) setToc([...book.navigation.toc]);
                     });
 
                     rendition = book.renderTo(viewerRef.current!, {
@@ -190,9 +241,18 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                         if (!isMounted) return;
                         setLocation(location);
                         // Save progress
+                        let percentage = 0;
+                        try {
+                            if (book.locations.length() > 0) {
+                                percentage = book.locations.percentageFromCfi(location.start.cfi) * 100;
+                            }
+                        } catch (e) {
+                            console.warn("Could not calculate percentage from CFI", e);
+                        }
+
                         api.post(`/progress/${bookId}`, {
                             cfi: location.start.cfi,
-                            percentage: book.locations.percentageFromCfi(location.start.cfi) * 100
+                            percentage: percentage
                         }).catch(err => console.error("Failed to save progress", err));
                     });
 
@@ -201,14 +261,8 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                     });
                 }
 
-                const handleKeys = (e: KeyboardEvent) => {
-                    if (e.key === 'ArrowLeft') prev();
-                    if (e.key === 'ArrowRight') next();
-                };
-                window.addEventListener('keydown', handleKeys);
-
                 return () => {
-                    window.removeEventListener('keydown', handleKeys);
+                    // Cleanup if needed
                 };
             } catch (error) {
                 console.error("Failed to load book:", error);
@@ -224,7 +278,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 book.destroy();
             }
         };
-    }, [bookId, format]); // Added format to dependencies to ensure next/prev closure is fresh
+    }, [bookId, flowMode, isTwoPage]);
 
     // Handle settings updates
     useEffect(() => {
@@ -261,35 +315,176 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
         }
     }, [flowMode, isTwoPage]);
 
-    const next = () => {
+    const next = React.useCallback(() => {
         if (format === 'pdf') {
-            if (pageNumber < numPages) {
-                const newPage = pageNumber + 1;
-                setPageNumber(newPage);
-                api.post(`/progress/${bookId}`, {
-                    cfi: String(newPage),
-                    percentage: (newPage / numPages) * 100
-                }).catch(err => console.error("Failed to save progress", err));
-            }
+            setPageNumber(prevPage => {
+                if (prevPage < numPages) {
+                    const newPage = prevPage + 1;
+                    api.post(`/progress/${bookId}`, {
+                        cfi: String(newPage),
+                        percentage: (newPage / numPages) * 100
+                    }).catch(err => console.error("Failed to save progress", err));
+                    return newPage;
+                }
+                return prevPage;
+            });
         } else {
             renditionRef.current?.next();
         }
-    };
+    }, [format, numPages, bookId]);
 
-    const prev = () => {
+    const prev = React.useCallback(() => {
         if (format === 'pdf') {
-            if (pageNumber > 1) {
-                const newPage = pageNumber - 1;
-                setPageNumber(newPage);
-                api.post(`/progress/${bookId}`, {
-                    cfi: String(newPage),
-                    percentage: (newPage / numPages) * 100
-                }).catch(err => console.error("Failed to save progress", err));
-            }
+            setPageNumber(prevPage => {
+                if (prevPage > 1) {
+                    const newPage = prevPage - 1;
+                    api.post(`/progress/${bookId}`, {
+                        cfi: String(newPage),
+                        percentage: (newPage / numPages) * 100
+                    }).catch(err => console.error("Failed to save progress", err));
+                    return newPage;
+                }
+                return prevPage;
+            });
         } else {
             renditionRef.current?.prev();
         }
+    }, [format, numPages, bookId]);
+
+    // Jump to location (CFI or PDF page)
+    const jumpTo = (target: string) => {
+        if (format === 'pdf') {
+            const page = parseInt(target);
+            if (!isNaN(page)) {
+                setPageNumber(page);
+                api.post(`/progress/${bookId}`, {
+                    cfi: String(page),
+                    percentage: (page / numPages) * 100
+                }).catch(err => console.error("Failed to save progress", err));
+            }
+        } else {
+            renditionRef.current?.display(target);
+        }
+        setShowSidebar(false);
     };
+
+    // Add Bookmark
+    const addBookmark = async () => {
+        let cfi = '';
+        let percentage = 0;
+        let label = '';
+
+        if (format === 'pdf') {
+            cfi = String(pageNumber);
+            percentage = (pageNumber / numPages) * 100;
+            label = `Page ${pageNumber} (${Math.round(percentage)}%)`;
+        } else if (location) {
+            cfi = location.start.cfi;
+            percentage = location.start.percentage;
+
+            // Try to find chapter name
+            const chapter = toc.find((item: any) => item.href === location.start.href);
+            label = chapter ? `${chapter.label} (${Math.round(percentage * 100)}%)` : `Location ${Math.round(percentage * 100)}%`;
+        }
+
+        if (!cfi) return;
+
+        try {
+            const res = await api.post(`/bookmarks/${bookId}`, { cfi, label });
+            setBookmarks([res.data, ...bookmarks]);
+        } catch (e) {
+            console.error("Failed to add bookmark", e);
+        }
+    };
+
+    const deleteBookmark = async (id: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await api.delete(`/bookmarks/${id}`);
+            setBookmarks(bookmarks.filter(b => b.id !== id));
+        } catch (e) {
+            console.error("Failed to delete bookmark", e);
+        }
+    };
+
+    useEffect(() => {
+        const handleKeys = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') prev();
+            if (e.key === 'ArrowRight') next();
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [prev, next]);
+
+    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = x / rect.width;
+
+        if (format === 'pdf') {
+            const newPage = Math.max(1, Math.min(numPages, Math.round(percentage * numPages)));
+            setPageNumber(newPage);
+            api.post(`/progress/${bookId}`, {
+                cfi: String(newPage),
+                percentage: (newPage / numPages) * 100
+            }).catch(err => console.error("Failed to save progress", err));
+        } else if (bookRef.current && renditionRef.current && bookRef.current.locations.length() > 0) {
+            try {
+                const cfi = bookRef.current.locations.cfiFromPercentage(percentage);
+                if (cfi) {
+                    renditionRef.current.display(cfi);
+                }
+            } catch (err) {
+                console.warn("Failed to jump to percentage", err);
+            }
+        }
+    };
+
+    const chapterMarkers = React.useMemo(() => {
+        if (!toc || toc.length === 0) return [];
+
+        if (format === 'pdf') {
+            return toc.map(item => ({
+                pos: (item.page / numPages) * 100,
+                title: item.title
+            }));
+        } else if (bookRef.current && bookRef.current.locations.length() > 0) {
+            return toc.map(item => {
+                try {
+                    // Try to get CFI for the TOC item safely
+                    const href = item.href?.split('#')[0];
+                    const spineItem = bookRef.current.spine.get(href);
+
+                    // Use item.cfi if available, otherwise fallback to spineItem.cfiBase
+                    let cfi = item.cfi || (spineItem ? (spineItem.cfiBase || (spineItem as any).cfi) : null);
+
+                    if (cfi && typeof cfi === 'string') {
+                        // Ensure it's a full CFI string
+                        if (!cfi.startsWith('epubcfi(')) {
+                            cfi = `epubcfi(${cfi})`;
+                        }
+
+                        try {
+                            const percentage = bookRef.current.locations.percentageFromCfi(cfi);
+                            return {
+                                pos: percentage * 100,
+                                title: item.label
+                            };
+                        } catch (err) {
+                            // If base CFI fails, try to find it in spine items
+                            return null;
+                        }
+                    }
+                } catch (e: any) {
+                    // console.warn(`Error calculating marker position for ${item.label}:`, e.message);
+                }
+                return null;
+            }).filter((marker): marker is { pos: number, title: string } =>
+                marker !== null && marker.pos >= 0 && marker.pos <= 100
+            );
+        }
+        return [];
+    }, [toc, format, numPages]);
 
     const readerBg = theme === 'sepia' ? 'bg-[#f4ecd8]' : theme === 'dark' ? 'bg-[#121212]' : 'bg-white';
     const containerBg = theme === 'sepia' ? 'bg-[#ebe4d1]' : theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-slate-100';
@@ -297,13 +492,21 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     return (
         <div className={clsx("fixed inset-0 z-[60] flex flex-col animate-in fade-in zoom-in duration-300", readerBg)}>
             {/* Toolbar */}
-            <div className={clsx("h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors",
+            <div className={clsx("h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors z-[70] relative",
                 theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-300" : "bg-slate-50 text-slate-600")}>
                 <div className="flex items-center space-x-4">
                     <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-lg transition-colors">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
-                    <h2 className="font-semibold truncate max-w-md">{title || 'Loading...'}</h2>
+
+                    <button
+                        onClick={() => setShowSidebar(!showSidebar)}
+                        className={clsx("p-2 rounded-lg transition-colors", showSidebar ? "bg-blue-100 text-blue-600" : "hover:bg-black/5")}
+                    >
+                        <ListBulletIcon className="w-5 h-5" />
+                    </button>
+
+                    <h2 className="font-semibold truncate max-w-md hidden sm:block">{title || 'Loading...'}</h2>
                 </div>
 
                 <div className="flex items-center space-x-2 relative">
@@ -395,6 +598,99 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 </div>
             </div>
 
+            {/* Sidebar (TOC & Bookmarks) */}
+            <div className={clsx(
+                "fixed inset-y-0 left-0 w-80 bg-white dark:bg-slate-900 z-[65] shadow-2xl transform transition-transform duration-300 ease-in-out border-r dark:border-slate-800 flex flex-col",
+                showSidebar ? "translate-x-0" : "-translate-x-full",
+                // Push content? separate from toolbar?
+                "mt-14" // below toolbar
+            )}>
+                <div className="flex border-b dark:border-slate-800">
+                    <button
+                        onClick={() => setActiveTab('chapters')}
+                        className={clsx(
+                            "flex-1 py-3 text-sm font-medium text-center transition-colors border-b-2",
+                            activeTab === 'chapters'
+                                ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                                : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                        )}
+                    >
+                        Chapters
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bookmarks')}
+                        className={clsx(
+                            "flex-1 py-3 text-sm font-medium text-center transition-colors border-b-2",
+                            activeTab === 'bookmarks'
+                                ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                                : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                        )}
+                    >
+                        Bookmarks
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                    {activeTab === 'chapters' ? (
+                        <div className="py-2">
+                            {toc.length > 0 ? toc.map((chapter, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => jumpTo(format === 'pdf' ? String(chapter.page) : chapter.href)}
+                                    className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm text-slate-700 dark:text-slate-300 border-b border-transparent hover:border-slate-100 dark:hover:border-slate-700"
+                                >
+                                    <div className="font-medium truncate">{chapter.label || chapter.title}</div>
+                                    {format === 'pdf' && <div className="text-xs text-slate-400 mt-0.5">Page {chapter.page}</div>}
+                                </button>
+                            )) : (
+                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                                    <ListBulletIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                    <p className="text-sm">No chapters found</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="py-2">
+                            <div className="px-4 py-2">
+                                <button
+                                    onClick={addBookmark}
+                                    className="w-full flex items-center justify-center space-x-2 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-sm font-medium"
+                                >
+                                    <BookmarkIconSolid className="w-4 h-4" />
+                                    <span>Add Bookmark</span>
+                                </button>
+                            </div>
+
+                            {bookmarks.length > 0 ? bookmarks.map((bookmark) => (
+                                <div
+                                    key={bookmark.id}
+                                    className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm text-slate-700 dark:text-slate-300 border-b border-transparent hover:border-slate-100 dark:hover:border-slate-700 group flex items-start justify-between"
+                                >
+                                    <button
+                                        className="flex-1 text-left min-w-0"
+                                        onClick={() => jumpTo(bookmark.cfi)}
+                                    >
+                                        <div className="font-medium truncate">{bookmark.label || 'Untitled Bookmark'}</div>
+                                        <div className="text-xs text-slate-400 mt-0.5">{new Date(bookmark.created_at).toLocaleString()}</div>
+                                    </button>
+                                    <button
+                                        onClick={(e) => deleteBookmark(bookmark.id, e)}
+                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )) : (
+                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                                    <BookmarkIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                    <p className="text-sm">No bookmarks yet</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Viewer Container */}
             <div className={clsx("flex-1 relative flex items-center justify-center overflow-hidden transition-colors", containerBg)}>
                 {isLoading && (
@@ -459,10 +755,30 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 )}
             </div>
 
-            {/* Keyboard shortcuts hints */}
-            <div className={clsx("h-8 border-t flex items-center justify-center text-[10px] font-medium uppercase tracking-widest shrink-0 transition-colors",
-                theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 text-slate-400")}>
-                Use arrows or click sides to navigate
+            {/* Progress Bar & Navigation Hints */}
+            <div className="shrink-0 z-[60]">
+                <div
+                    className="h-2 w-full bg-black/5 dark:bg-white/5 relative cursor-pointer group/progress"
+                    onClick={handleProgressBarClick}
+                >
+                    {/* Chapter Markers */}
+                    {chapterMarkers.map((marker, i) => (
+                        <div
+                            key={i}
+                            className="absolute top-0 bottom-0 w-px bg-black/10 dark:bg-white/10 z-10"
+                            style={{ left: `${marker.pos}%` }}
+                            title={marker.title}
+                        />
+                    ))}
+                    <div
+                        className="h-full bg-blue-500/80 group-hover/progress:bg-blue-500 transition-all duration-300 relative z-20"
+                        style={{ width: `${format === 'pdf' ? (numPages > 0 ? (pageNumber / numPages) * 100 : 0) : ((location?.start.percentage || 0) * 100)}%` }}
+                    />
+                </div>
+                <div className={clsx("h-8 border-t flex items-center justify-center text-[10px] font-medium uppercase tracking-widest transition-colors",
+                    theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 text-slate-400")}>
+                    {flowMode === 'scrolled' ? 'Use mouse or arrows to scroll' : 'Use arrows or click sides to navigate'}
+                </div>
             </div>
         </div>
     );

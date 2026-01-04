@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, database
 from datetime import datetime
 
-from .auth import get_current_user
+from ..services.auth import get_current_user
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from . import models, database
 from .services import auth as auth_service
-from .routers import books, auth, collections, progress
+from .routers import books, auth, collections, progress, bookmarks
 from sqlalchemy.orm import Session
 
 # Create database tables
@@ -44,6 +44,7 @@ app.include_router(auth.router)
 app.include_router(books.router)
 app.include_router(collections.router)
 app.include_router(progress.router)
+app.include_router(bookmarks.router)
 
 @app.get("/")
 async def root():
