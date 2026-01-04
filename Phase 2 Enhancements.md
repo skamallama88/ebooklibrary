@@ -1,0 +1,94 @@
+Phase 2 (Enhancements & Power Features)
+1. Advanced Metadata & Library Features
+
+Full metadata coverage:
+
+- Published date
+- Language
+- Series
+- ISBN
+- Additional Metadata as required
+
+Bulk metadata editing
+
+Metadata auto-fetch (Open Library, Google Books, etc.)
+
+Cover replacement and editing
+
+Advanced tagging system
+
+2. Smart Collections
+
+- Smart collections with logic:
+  - AND / OR / NOT
+- Rules based on:
+  - Tags
+  - Authors
+  - Rating
+  - Read status
+  - Format
+- Live-updating collections
+
+3. Advanced Reader Features
+
+- Reading progress sync across devices
+- Jump to chapter
+- Progress bar at bottom of book
+- Bookmarks and highlights
+- Notes and annotations
+- Search inside book content
+- Adjustable margins, fonts, line spacing
+- Remember per-book or global reader preferences
+- Open reader:
+  - New window
+  - Modal popup
+  - User-configurable behavior
+
+4. AI Features
+
+- AI-powered ebook summarization
+- Configurable AI backend:
+  - Local LLM
+  - Hosted API
+- Store generated summaries as editable metadata
+- Chapter-level summaries
+- Keyword extraction
+- Optional Q&A over book content
+- Tested in a previous project, amend existing implementation for project
+
+5. OPDS Server Mode
+
+- Full OPDS 1.x / 2.x support
+- Compatible with:
+  - KOReader
+  - Moon+ Reader
+  - Other ebook apps
+- Authenticated OPDS feeds
+- Per-user libraries
+
+6. Performance & Scalability
+
+- Background workers for:
+  - Metadata extraction
+  - AI summarization
+- Full-text search index
+- Caching layer
+- Incremental library rescans
+
+7. User & Settings Enhancements
+
+- Per-user settings:
+  - Reader preferences
+  - UI preferences
+- Role-based access (admin / reader)
+- User activity tracking
+- Reading statistics & history
+
+8. UX & Polish
+
+- Drag-and-drop uploads
+- Keyboard shortcuts
+- Column presets
+- Saved searches
+- Improved mobile navigation
+- Theming / custom styles

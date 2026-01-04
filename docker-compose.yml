@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ebook-library-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ebookuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ebookpass}
+      POSTGRES_DB: ${POSTGRES_DB:-ebooklibrary}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ebook-library-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ebookuser}:${POSTGRES_PASSWORD:-ebookpass}@db:5432/${POSTGRES_DB:-ebooklibrary}
+      BOOK_STORAGE_PATH: /data/books
+      COVER_STORAGE_PATH: /data/covers
+      JWT_SECRET: ${JWT_SECRET:-supersecret}
+    volumes:
+      - ./backend:/app
+      - ./data/books:/data/books
+      - ./data/covers:/data/covers
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ebook-library-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  db-data:
