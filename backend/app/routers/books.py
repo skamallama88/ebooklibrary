@@ -17,7 +17,7 @@ async def require_admin(current_user: models.User = Depends(get_current_user)):
 
 router = APIRouter(prefix="/books", tags=["books"])
 
-@router.get("/", response_model=schemas.PaginatedBookList)
+@router.get("/", response_model=schemas.PaginatedBookListWithProgress)
 def get_books(
     skip: int = 0,
     limit: int = 100,
@@ -77,8 +77,32 @@ def get_books(
         
     books = query.distinct().offset(skip).limit(limit).all()
     
+    # Fetch reading progress for current user
+    progress_map = {}
+    if books:
+        book_ids = [book.id for book in books]
+        progress_records = db.query(models.ReadingProgress).filter(
+            models.ReadingProgress.user_id == current_user.id,
+            models.ReadingProgress.book_id.in_(book_ids)
+        ).all()
+        
+        for progress in progress_records:
+            progress_map[progress.book_id] = {
+                'percentage': progress.percentage,
+                'is_finished': progress.is_finished
+            }
+    
+    # Build response with progress
+    items_with_progress = []
+    for book in books:
+        book_dict = schemas.Book.model_validate(book).model_dump()
+        progress = progress_map.get(book.id, {})
+        book_dict['progress_percentage'] = progress.get('percentage')
+        book_dict['is_read'] = bool(progress.get('is_finished', 0))
+        items_with_progress.append(schemas.BookWithProgress(**book_dict))
+    
     return {
-        "items": books,
+        "items": items_with_progress,
         "total": total,
         "page": skip // limit,
         "limit": limit

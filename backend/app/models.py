@@ -63,6 +63,8 @@ class Book(Base):
     file_size = Column(Integer)
     published_date = Column(DateTime)
     publisher = Column(String)
+    series = Column(String)
+    series_index = Column(Integer)
     language = Column(String)
     description = Column(Text)
     rating = Column(Float, default=0.0)

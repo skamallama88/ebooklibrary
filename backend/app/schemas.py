@@ -43,6 +43,8 @@ class BookBase(BaseModel):
     file_size: Optional[int] = None
     published_date: Optional[datetime] = None
     publisher: Optional[str] = None
+    series: Optional[str] = None
+    series_index: Optional[int] = None
     language: Optional[str] = None
     description: Optional[str] = None
     rating: float = 0.0
@@ -56,6 +58,8 @@ class BookUpdate(BaseModel):
     format: Optional[str] = None
     published_date: Optional[datetime] = None
     publisher: Optional[str] = None
+    series: Optional[str] = None
+    series_index: Optional[int] = None
     language: Optional[str] = None
     description: Optional[str] = None
     rating: Optional[float] = None
@@ -75,6 +79,17 @@ class Book(BookBase):
 
 class PaginatedBookList(BaseModel):
     items: List[Book]
+    total: int
+    page: int
+    limit: int
+
+class BookWithProgress(Book):
+    """Book schema extended with user-specific reading progress"""
+    progress_percentage: Optional[float] = None
+    is_read: bool = False
+    
+class PaginatedBookListWithProgress(BaseModel):
+    items: List[BookWithProgress]
     total: int
     page: int
     limit: int
