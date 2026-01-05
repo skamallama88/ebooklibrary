@@ -6,6 +6,8 @@ import BookDetailPanel from './components/BookDetailPanel';
 import Reader from './components/Reader';
 import ImportModal from './components/ImportModal';
 import EditMetadataModal from './components/EditMetadataModal';
+import UserSettingsModal from './components/UserSettingsModal';
+import UserManagementModal from './components/UserManagementModal';
 import Topbar from './components/Topbar';
 import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import api from './api';
@@ -24,6 +26,8 @@ function App() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [editBookId, setEditBookId] = useState<number | null>(null);
   const [sorting, setSorting] = useState<any[]>([]);
+  const [showUserSettings, setShowUserSettings] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(sidebarCollapsed));
@@ -49,13 +53,13 @@ function App() {
   };
 
   // Initialize theme on mount
-  useState(() => {
+  useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  });
+  }, [darkMode]);
 
   const limit = 100;
 
@@ -118,6 +122,8 @@ function App() {
     }
   };
 
+  // Render appropriate content based on auth state
+  // CRITICAL: No early returns - all hooks must be called on every render
   if (authLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
@@ -130,6 +136,7 @@ function App() {
     return <LoginPage />;
   }
 
+  // Main authenticated app JSX
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden dark:bg-slate-900">
       <Sidebar
@@ -157,6 +164,8 @@ function App() {
           onRead={(id) => setReaderBookId(id)}
           darkMode={darkMode}
           toggleDarkMode={toggleDarkMode}
+          onOpenSettings={() => setShowUserSettings(true)}
+          onOpenUserManagement={() => setShowUserManagement(true)}
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">
@@ -262,6 +271,18 @@ function App() {
         onClose={() => setEditBookId(null)}
         onSuccess={() => refetch()}
       />
+
+      <UserSettingsModal
+        isOpen={showUserSettings}
+        onClose={() => setShowUserSettings(false)}
+      />
+
+      {user?.is_admin && (
+        <UserManagementModal
+          isOpen={showUserManagement}
+          onClose={() => setShowUserManagement(false)}
+        />
+      )}
     </div>
   );
 }

@@ -130,6 +130,50 @@ class User(UserBase):
     is_admin: bool
     model_config = ConfigDict(from_attributes=True)
 
+# User settings schemas
+class ReadingPreferences(BaseModel):
+    font_size: int = 16
+    font_family: str = "serif"  # serif, sans-serif
+    page_layout: str = "paginated"  # paginated, scrolled, two-page
+
+class NotificationPreferences(BaseModel):
+    notifications_enabled: bool = True
+
+class UserSettings(BaseModel):
+    username: str
+    email: str
+    theme_preference: str = "auto"  # light, dark, auto
+    reading_preferences: ReadingPreferences
+    notification_preferences: NotificationPreferences
+
+class UserSettingsUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    theme_preference: Optional[str] = None
+    font_size: Optional[int] = None
+    font_family: Optional[str] = None
+    page_layout: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+
+class UserListItem(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool
+    is_admin: bool
+    model_config = ConfigDict(from_attributes=True)
+
 class Token(BaseModel):
     access_token: str
     token_type: str

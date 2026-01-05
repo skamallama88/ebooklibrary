@@ -35,6 +35,13 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     
+    # User preferences
+    theme_preference = Column(String, default="auto")  # light, dark, auto
+    font_size = Column(Integer, default=16)  # Reading font size
+    font_family = Column(String, default="serif")  # serif, sans-serif
+    page_layout = Column(String, default="paginated")  # paginated, scrolled, two-page
+    notifications_enabled = Column(Boolean, default=True)
+    
     progress = relationship("ReadingProgress", back_populates="user")
     collections = relationship("Collection", back_populates="owner")
     bookmarks = relationship("Bookmark", back_populates="user")

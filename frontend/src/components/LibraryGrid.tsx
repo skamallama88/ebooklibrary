@@ -308,6 +308,8 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
         overscan: 5,
     });
 
+    const [showColumnSelector, setShowColumnSelector] = React.useState(false);
+
     if (!isLoading && data.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-2">
@@ -316,8 +318,6 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             </div>
         );
     }
-
-    const [showColumnSelector, setShowColumnSelector] = React.useState(false);
 
     return (
         <div className="flex-1 overflow-hidden flex flex-col bg-white dark:bg-slate-900 rounded-lg shadow-sm border dark:border-slate-800 m-4 font-sans transition-colors duration-200">
