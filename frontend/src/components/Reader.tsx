@@ -194,6 +194,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 } else {
                     book = ePub(blob);
                     bookRef.current = book;
+                    (window as any).book = book;
 
                     book.ready.then(() => {
                         if (isMounted) {
@@ -215,6 +216,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                     });
 
                     renditionRef.current = rendition;
+                    (window as any).rendition = rendition;
 
                     // Register themes
                     Object.keys(themes).forEach(name => {
@@ -450,13 +452,22 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             }));
         } else if (bookRef.current && bookRef.current.locations.length() > 0) {
             return toc.map(item => {
+                let percentage = 0;
                 try {
                     // Try to get CFI for the TOC item safely
                     const href = item.href?.split('#')[0];
                     const spineItem = bookRef.current.spine.get(href);
 
-                    // Use item.cfi if available, otherwise fallback to spineItem.cfiBase
-                    let cfi = item.cfi || (spineItem ? (spineItem.cfiBase || (spineItem as any).cfi) : null);
+                    // Strategy 1: Use specific item.cfi or construct from spine base
+                    let cfi = item.cfi;
+
+                    if (!cfi && spineItem) {
+                        cfi = spineItem.cfiBase;
+                        // If it's a base CFI (ending in !), we need to point to the start of content
+                        if (cfi && cfi.endsWith('!')) {
+                            cfi = `${cfi}/4/1:0`; // Standard start path
+                        }
+                    }
 
                     if (cfi && typeof cfi === 'string') {
                         // Ensure it's a full CFI string
@@ -464,23 +475,26 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                             cfi = `epubcfi(${cfi})`;
                         }
 
-                        try {
-                            const percentage = bookRef.current.locations.percentageFromCfi(cfi);
-                            return {
-                                pos: percentage * 100,
-                                title: item.label
-                            };
-                        } catch (err) {
-                            // If base CFI fails, try to find it in spine items
-                            return null;
-                        }
+                        // Calculate percentage from CFI
+                        percentage = bookRef.current.locations.percentageFromCfi(cfi) * 100;
+                    } else if (spineItem) {
+                        // Strategy 2: Fallback to spine index approximation
+                        // This isn't perfect but better than no marker
+                        percentage = (spineItem.index / bookRef.current.spine.length) * 100;
+                    }
+
+                    if (percentage >= 0 && percentage <= 100) {
+                        return {
+                            pos: percentage,
+                            title: item.label
+                        };
                     }
                 } catch (e: any) {
-                    // console.warn(`Error calculating marker position for ${item.label}:`, e.message);
+                    // Fail silently for individual bad markers to keep the rest
                 }
                 return null;
             }).filter((marker): marker is { pos: number, title: string } =>
-                marker !== null && marker.pos >= 0 && marker.pos <= 100
+                marker !== null
             );
         }
         return [];

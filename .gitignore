@@ -1,22 +1,17 @@
-# Temporary and generated files
-tmp-frontend/
+.env
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
 node_modules/
 dist/
 build/
-.DS_Store
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-.venv/
-env/
-.env
-
-# Database/Data
+*.sqlite3
 data/
-db.sqlite3
-
-# Logs
 *.log
+.vscode/
+.idea/

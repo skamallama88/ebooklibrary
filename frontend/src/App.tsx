@@ -5,6 +5,7 @@ import LibraryGrid from './components/LibraryGrid';
 import BookDetailPanel from './components/BookDetailPanel';
 import Reader from './components/Reader';
 import ImportModal from './components/ImportModal';
+import EditMetadataModal from './components/EditMetadataModal';
 import Topbar from './components/Topbar';
 import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import api from './api';
@@ -21,6 +22,7 @@ function App() {
   const [selectedBookIds, setSelectedBookIds] = useState<number[]>([]);
   const [readerBookId, setReaderBookId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [editBookId, setEditBookId] = useState<number | null>(null);
   const [sorting, setSorting] = useState<any[]>([]);
 
   useEffect(() => {
@@ -144,7 +146,7 @@ function App() {
         <Topbar
           selectedBookIds={selectedBookIds}
           onAddBooks={() => setShowImportModal(true)}
-          onEditBook={(id) => setSelectedBookIds([id])}
+          onEditBook={(id) => setEditBookId(id)}
           onDownloadBooks={(ids) => {
             ids.forEach(id => {
               window.open(`${api.defaults.baseURL}/books/${id}/file`, '_blank');
@@ -251,6 +253,13 @@ function App() {
       <ImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
+        onSuccess={() => refetch()}
+      />
+
+      <EditMetadataModal
+        isOpen={!!editBookId}
+        bookId={editBookId}
+        onClose={() => setEditBookId(null)}
         onSuccess={() => refetch()}
       />
     </div>

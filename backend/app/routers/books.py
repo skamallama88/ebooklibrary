@@ -6,6 +6,14 @@ from typing import List, Optional
 import os
 from .. import models, schemas, database
 from ..services.library import scan_library, import_book
+from ..routers.auth import get_current_user
+
+# Admin-only helper
+async def require_admin(current_user: models.User = Depends(get_current_user)):
+    """Dependency that requires admin privileges."""
+    if not current_user.is_admin:
+        raise HTTPException(403, "Admin access required")
+    return current_user
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -20,6 +28,7 @@ def get_books(
     collection_id: Optional[int] = None,
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "asc",
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     query = db.query(models.Book)
@@ -76,7 +85,11 @@ def get_books(
     }
 
 @router.delete("/bulk", status_code=204)
-def bulk_delete_books(book_ids: List[int], db: Session = Depends(database.get_db)):
+def bulk_delete_books(
+    book_ids: List[int],
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(database.get_db)
+):
     books = db.query(models.Book).filter(models.Book.id.in_(book_ids)).all()
     for book in books:
         # Delete cover if exists
@@ -107,7 +120,11 @@ def get_publishers(db: Session = Depends(database.get_db)):
     return [p[0] for p in publishers]
 
 @router.post("/scan", status_code=202)
-def trigger_scan(background_tasks: BackgroundTasks, db: Session = Depends(database.get_db)):
+def trigger_scan(
+    background_tasks: BackgroundTasks,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(database.get_db)
+):
     background_tasks.add_task(scan_library, db)
     return {"message": "Scan started in background"}
 
@@ -191,7 +208,11 @@ def get_book_cover(book_id: int, db: Session = Depends(database.get_db)):
     return FileResponse(full_path, media_type="image/jpeg")
 
 @router.post("/upload", response_model=schemas.Book)
-async def upload_book(file: UploadFile = File(...), db: Session = Depends(database.get_db)):
+async def upload_book(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db)
+):
     if not file.filename.lower().endswith(('.epub', '.pdf')):
         raise HTTPException(status_code=400, detail="Only EPUB and PDF files are supported")
     
