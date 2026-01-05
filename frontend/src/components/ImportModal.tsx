@@ -19,6 +19,7 @@ interface UploadStatus {
 const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const [files, setFiles] = useState<File[]>([]);
     const [uploadStatuses, setUploadStatuses] = useState<Record<string, UploadStatus>>({});
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!isOpen) return null;
@@ -26,7 +27,43 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
-            setFiles(prev => [...prev, ...newFiles]);
+            addFiles(newFiles);
+        }
+    };
+
+    const addFiles = (newFiles: File[]) => {
+        // Filter for allowed types just in case (EPUB and PDF)
+        const filteredFiles = newFiles.filter(file => 
+            file.name.toLowerCase().endsWith('.epub') || 
+            file.name.toLowerCase().endsWith('.pdf')
+        );
+        setFiles(prev => {
+            // Avoid duplicate files by name if necessary, 
+            // but for now just appending is fine as per existing logic
+            return [...prev, ...filteredFiles];
+        });
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const droppedFiles = Array.from(e.dataTransfer.files);
+            addFiles(droppedFiles);
         }
     };
 
@@ -100,15 +137,28 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                 </div>
 
                 <div className="p-6 overflow-y-auto flex-1 space-y-4">
-                    {/* Drag & Drop Area Placeholder */}
+                    {/* Drag & Drop Area */}
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={clsx(
+                            "border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center space-y-3 transition-all cursor-pointer group",
+                            isDragging 
+                                ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 scale-[1.02]" 
+                                : "border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10"
+                        )}
                     >
-                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <CloudArrowUpIcon className="w-6 h-6" />
+                        <div className={clsx(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-transform",
+                            isDragging ? "bg-blue-100 dark:bg-blue-900/60 scale-110" : "bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 group-hover:scale-110"
+                        )}>
+                            <CloudArrowUpIcon className={clsx("w-6 h-6", isDragging ? "text-blue-600 dark:text-blue-400" : "")} />
                         </div>
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Click to select files</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                            {isDragging ? "Drop your files here" : "Click or drag files here to select"}
+                        </p>
                         <p className="text-xs text-slate-400 dark:text-slate-500">Supports EPUB and PDF</p>
                         <input
                             type="file"

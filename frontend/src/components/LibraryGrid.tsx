@@ -108,6 +108,26 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
         localStorage.setItem('libraryColumnSizing', JSON.stringify(columnSizing));
     }, [columnSizing]);
 
+    // Calculate tag frequencies across the entire dataset for sorting
+    const tagFrequencies = useMemo(() => {
+        const freqs: Record<string, number> = {};
+        data.forEach(book => {
+            book.tags?.forEach(tag => {
+                freqs[tag.name] = (freqs[tag.name] || 0) + 1;
+            });
+        });
+        return freqs;
+    }, [data]);
+
+    const sortTags = (tags: Tag[]) => {
+        return [...tags].sort((a, b) => {
+            const freqA = tagFrequencies[a.name] || 0;
+            const freqB = tagFrequencies[b.name] || 0;
+            if (freqB !== freqA) return freqB - freqA;
+            return a.name.localeCompare(b.name);
+        });
+    };
+
     const columns = useMemo<ColumnDef<Book>[]>(() => [
         {
             id: 'select',
@@ -254,16 +274,59 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             size: 200,
             minSize: 150,
             enableSorting: false,
-            cell: (info) => (
-                <div className="flex flex-wrap gap-1">
-                    {(info.getValue() || []).slice(0, 3).map(tag => (
-                        <span key={tag.id} className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-medium">
-                            {tag.name}
-                        </span>
-                    ))}
-                    {info.getValue().length > 3 && <span className="text-[10px] text-slate-400 dark:text-slate-500">+{info.getValue().length - 3}</span>}
-                </div>
-            ),
+            cell: (info) => {
+                const rawTags = info.getValue() || [];
+                if (rawTags.length === 0) return <span className="text-slate-400 dark:text-slate-600">—</span>;
+                
+                const sortedTags = sortTags(rawTags);
+                const columnWidth = info.column.getSize();
+                
+                let currentWidth = 0;
+                const displayTags = [];
+                let hiddenCount = 0;
+                const GAP = 4;
+                const COUNTER_WIDTH = 35; // Space for +X indicator
+                const PADDING_X = 24; // Cell padding
+                const availableWidth = columnWidth - PADDING_X;
+
+                for (let i = 0; i < sortedTags.length; i++) {
+                    const tag = sortedTags[i];
+                    // Approximate tag width: 6px per char + 12px padding + gap
+                    const tagWidth = (tag.name.length * 7) + 12 + GAP;
+                    
+                    if (currentWidth + tagWidth < availableWidth - (i < sortedTags.length - 1 ? COUNTER_WIDTH : 0)) {
+                        displayTags.push(tag);
+                        currentWidth += tagWidth;
+                    } else {
+                        hiddenCount = sortedTags.length - i;
+                        break;
+                    }
+                }
+
+                // If we couldn't even fit one tag, show +count
+                if (displayTags.length === 0 && sortedTags.length > 0) {
+                    return <span className="text-[10px] text-slate-400 dark:text-slate-500">+{sortedTags.length} tags</span>;
+                }
+
+                return (
+                    <div className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
+                        {displayTags.map(tag => (
+                            <span 
+                                key={tag.id} 
+                                className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-medium flex-shrink-0"
+                                title={tag.name}
+                            >
+                                {tag.name}
+                            </span>
+                        ))}
+                        {hiddenCount > 0 && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex-shrink-0">
+                                +{hiddenCount}
+                            </span>
+                        )}
+                    </div>
+                );
+            },
         }) as ColumnDef<Book>,
     ], []);
 
