@@ -285,27 +285,32 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                 const displayTags = [];
                 let hiddenCount = 0;
                 const GAP = 4;
-                const COUNTER_WIDTH = 35; // Space for +X indicator
+                const COUNTER_WIDTH = 25; // Space for +X indicator
                 const PADDING_X = 24; // Cell padding
                 const availableWidth = columnWidth - PADDING_X;
 
                 for (let i = 0; i < sortedTags.length; i++) {
                     const tag = sortedTags[i];
-                    // Approximate tag width: 6px per char + 12px padding + gap
-                    const tagWidth = (tag.name.length * 7) + 12 + GAP;
+                    // More realistic tag width estimate: 5.5px per char + padding + gap
+                    const tagWidth = (tag.name.length * 5.5) + 12 + GAP;
                     
-                    if (currentWidth + tagWidth < availableWidth - (i < sortedTags.length - 1 ? COUNTER_WIDTH : 0)) {
+                    const isLast = i === sortedTags.length - 1;
+                    const reservation = isLast ? 0 : COUNTER_WIDTH;
+                    
+                    if (currentWidth + tagWidth <= availableWidth - reservation) {
                         displayTags.push(tag);
                         currentWidth += tagWidth;
                     } else {
-                        hiddenCount = sortedTags.length - i;
+                        // Special case: if it's the first tag and it's too long, 
+                        // but we have some space, show it anyway truncated.
+                        if (i === 0 && availableWidth > 40) {
+                            displayTags.push(tag);
+                            hiddenCount = sortedTags.length - 1;
+                        } else {
+                            hiddenCount = sortedTags.length - i;
+                        }
                         break;
                     }
-                }
-
-                // If we couldn't even fit one tag, show +count
-                if (displayTags.length === 0 && sortedTags.length > 0) {
-                    return <span className="text-[10px] text-slate-400 dark:text-slate-500">+{sortedTags.length} tags</span>;
                 }
 
                 return (
@@ -313,7 +318,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                         {displayTags.map(tag => (
                             <span 
                                 key={tag.id} 
-                                className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-medium flex-shrink-0"
+                                className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-[10px] font-medium flex-shrink min-w-0 truncate"
                                 title={tag.name}
                             >
                                 {tag.name}
@@ -323,6 +328,9 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                             <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex-shrink-0">
                                 +{hiddenCount}
                             </span>
+                        )}
+                        {displayTags.length === 0 && sortedTags.length > 0 && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500">+{sortedTags.length}</span>
                         )}
                     </div>
                 );
