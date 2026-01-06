@@ -10,19 +10,24 @@ import {
     Pencil as PencilIcon,
     Trash2 as Trash2Icon,
     Clock as ClockIcon,
-    BookOpen as BookOpenIcon
+    BookOpen as BookOpenIcon,
+    X as XIcon
 } from 'lucide-react';
 import api from '../api';
 import { clsx } from 'clsx';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface SidebarProps {
     collapsed: boolean;
     setCollapsed: (collapsed: boolean) => void;
     activeFilter: string;
     onFilterChange: (filter: string) => void;
+    mobileOpen?: boolean; // For mobile drawer control
+    onMobileClose?: () => void; // For closing mobile drawer
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter, onFilterChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter, onFilterChange, mobileOpen = false, onMobileClose }) => {
+    const { isMobile  } = useMediaQuery();
     const [showNewCollectionInput, setShowNewCollectionInput] = React.useState(false);
     const [newCollectionName, setNewCollectionName] = React.useState('');
     const [editingCollectionId, setEditingCollectionId] = React.useState<number | null>(null);
@@ -106,6 +111,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
         }
     };
 
+    // Close drawer when filter changes on mobile
+    React.useEffect(() => {
+        if (isMobile && onMobileClose) {
+            onMobileClose();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeFilter]);
+
     const menuItems = [
         { id: 'all', label: 'All Books', icon: BookOpenIcon },
         { id: 'recent', label: 'Recently Added', icon: BookmarkIcon },
@@ -113,29 +126,57 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
     ];
 
     return (
-        <aside
-            className={clsx(
-                "bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col shrink-0",
-                collapsed ? "w-20" : "w-64"
+        <>
+            {/* Mobile overlay */}
+            {isMobile && mobileOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+                    onClick={onMobileClose}
+                    aria-label="Close sidebar"
+                />
             )}
-        >
-            {/* Header / Brand */}
-            <div className="p-6 flex items-center justify-between">
-                {!collapsed && (
-                    <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100 dark:shadow-none">
-                            <BookmarkIcon className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-100 tracking-tight">EbookLib</span>
-                    </div>
+
+            {/* Sidebar */}
+            <aside
+                className={clsx(
+                    "bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col shrink-0",
+                    // Desktop behavior
+                    !isMobile && (collapsed ? "w-20" : "w-64"),
+                    // Mobile behavior - drawer
+                    isMobile && [
+                        "fixed inset-y-0 left-0 z-50 w-64",
+                        mobileOpen ? "translate-x-0" : "-translate-x-full"
+                    ]
                 )}
-                <button
-                    onClick={() => setCollapsed(!collapsed)}
-                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500"
-                >
-                    {collapsed ? <ChevronRightIcon className="w-5 h-5" /> : <ChevronLeftIcon className="w-5 h-5" />}
-                </button>
-            </div>
+            >
+                {/* Header / Brand */}
+                <div className="p-6 flex items-center justify-between">
+                    {!collapsed && (
+                        <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-100 dark:shadow-none">
+                                <BookmarkIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-100 tracking-tight">EbookLib</span>
+                        </div>
+                    )}
+                    {/* Show X button on mobile, collapse button on desktop */}
+                    {isMobile && onMobileClose ? (
+                        <button
+                            onClick={onMobileClose}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 touch-target"
+                            aria-label="Close sidebar"
+                        >
+                            <XIcon className="w-5 h-5" />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setCollapsed(!collapsed)}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500"
+                        >
+                            {collapsed ? <ChevronRightIcon className="w-5 h-5" /> : <ChevronLeftIcon className="w-5 h-5" />}
+                        </button>
+                    )}
+                </div>
 
             {/* Navigation */}
             <div className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide py-4">
@@ -383,6 +424,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                 )}
             </div>
         </aside>
+        </>
     );
 };
 

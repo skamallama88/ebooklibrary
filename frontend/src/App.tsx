@@ -18,6 +18,7 @@ import './index.css';
 function App() {
   const { user, isLoading: authLoading } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false); // Mobile drawer state
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -183,6 +184,8 @@ function App() {
           }
           setPage(0);
         }}
+        mobileOpen={mobileDrawerOpen}
+        onMobileClose={() => setMobileDrawerOpen(false)}
       />
 
       <main className="relative flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-colors duration-200">
@@ -203,6 +206,7 @@ function App() {
           onOpenSettings={() => setShowUserSettings(true)}
           onOpenUserManagement={() => setShowUserManagement(true)}
           onWordCount={handleWordCount}
+          onToggleSidebar={() => setMobileDrawerOpen(!mobileDrawerOpen)}
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">

@@ -6,6 +6,12 @@
 @theme {
   --color-brand: #3b82f6;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  
+  /* Responsive breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }
 
 :root {
@@ -32,4 +38,33 @@ body {
 
 .react-pdf__Page {
   background-color: transparent !important;
+}
+
+/* Mobile-specific utilities */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+/* Touch target sizing for accessibility */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Safe area support for notched devices */
+.safe-area-inset {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
