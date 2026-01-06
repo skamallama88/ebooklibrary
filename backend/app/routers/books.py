@@ -8,6 +8,7 @@ import os
 from .. import models, schemas, database
 from ..services.library import scan_library, import_book
 from ..routers.auth import get_current_user
+from ..services.tag_parser import apply_tag_filter
 
 # Admin-only helper
 async def require_admin(current_user: models.User = Depends(get_current_user)):
@@ -34,43 +35,39 @@ def get_books(
 ):
     query = db.query(models.Book)
     
+    # Handle new booru-style tag expression search
     if search:
-        import re
-        # Check for Calibre-style tags:"=VALUE", author:"=VALUE", publisher:"=VALUE"
-        tag_match = re.search(r'tags:"=(.*?)"', search)
-        author_match = re.search(r'authors?:"=(.*?)"', search)
-        publisher_match = re.search(r'publishers?:"=(.*?)"', search)
-        
-        if tag_match:
-            tag_val = tag_match.group(1)
-            query = query.join(models.Book.tags).filter(models.Tag.name == tag_val)
-            search = search.replace(f'tags:"={tag_val}"', "").strip()
-        
-        if author_match:
-            author_val = author_match.group(1)
-            query = query.join(models.Book.authors).filter(models.Author.name == author_val)
-            search = re.sub(r'authors?:"=.*?"', "", search).strip()
+        # Try to parse as tag expression first
+        try:
+            # Check if search looks like a tag expression (contains operators or type:tag syntax)
+            is_tag_expression = any(op in search for op in [' OR ', '-', ':']) or not ' ' in search
             
-        if publisher_match:
-            publisher_val = publisher_match.group(1)
-            query = query.filter(models.Book.publisher == publisher_val)
-            search = re.sub(r'publishers?:"=.*?"', "", search).strip()
-
-        if search:
-            # Search Remaining Title, Authors, and Tags
+            if is_tag_expression:
+                # Use tag expression parser
+                query = apply_tag_filter(db, query, search)
+            else:
+                # Fall back to title/author text search for natural language queries
+                search_filter = models.Book.title.ilike(f"%{search}%")
+                
+                # Add Author search
+                query = query.outerjoin(models.Book.authors)
+                search_filter = search_filter | models.Author.name.ilike(f"%{search}%")
+                
+                # Add Tag search
+                query = query.outerjoin(models.Book.tags)
+                search_filter = search_filter | models.Tag.name.ilike(f"%{search}%")
+                
+                query = query.filter(search_filter)
+        except Exception as e:
+            # If tag expression parsing fails, fall back to simple text search
             search_filter = models.Book.title.ilike(f"%{search}%")
-            
-            # Add Author search
             query = query.outerjoin(models.Book.authors)
             search_filter = search_filter | models.Author.name.ilike(f"%{search}%")
-            
-            # Add Tag search
             query = query.outerjoin(models.Book.tags)
             search_filter = search_filter | models.Tag.name.ilike(f"%{search}%")
-            
             query = query.filter(search_filter)
     
-    # Original specific filters (still supported for now)
+    # Original specific filters (for backward compatibility)
     if tag:
         query = query.join(models.Book.tags).filter(models.Tag.name == tag)
         

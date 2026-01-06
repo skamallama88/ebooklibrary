@@ -11,11 +11,15 @@ book_authors = Table(
     Column("author_id", Integer, ForeignKey("authors.id", ondelete="CASCADE"), primary_key=True),
 )
 
+# Enhanced book-tags junction table with metadata
 book_tags = Table(
     "book_tags",
     Base.metadata,
     Column("book_id", Integer, ForeignKey("books.id", ondelete="CASCADE"), primary_key=True),
     Column("tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True),
+    Column("confidence", Float, default=1.0),  # Confidence score for auto-tagged books
+    Column("source", String, default="manual"),  # manual, auto, import
+    Column("created_at", DateTime(timezone=True), server_default=func.now()),
 )
 
 collection_books = Table(
@@ -57,9 +61,24 @@ class Author(Base):
 class Tag(Base):
     __tablename__ = "tags"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, unique=True, index=True, nullable=False)  # Normalized snake_case
+    type = Column(String, index=True, nullable=False, default="meta")  # genre, theme, setting, tone, etc.
+    description = Column(Text, nullable=True)  # Tag description and usage notes
+    usage_count = Column(Integer, default=0, index=True)  # Number of books with this tag
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     books = relationship("Book", secondary=book_tags, back_populates="tags")
+    aliases = relationship("TagAlias", back_populates="canonical_tag", cascade="all, delete-orphan")
+
+class TagAlias(Base):
+    __tablename__ = "tag_aliases"
+    id = Column(Integer, primary_key=True, index=True)
+    alias = Column(String, unique=True, index=True, nullable=False)  # Alternative name (e.g., "sci-fi")
+    canonical_tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    canonical_tag = relationship("Tag", back_populates="aliases")
 
 class Book(Base):
     __tablename__ = "books"

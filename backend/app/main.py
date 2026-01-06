@@ -4,7 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from . import models, database
 from .services import auth as auth_service
-from .routers import books, auth, collections, progress, users, utilities
+from .routers import books, auth, collections, progress, users, utilities, tags
 from .middleware import limiter, rate_limit_exceeded_handler
 from sqlalchemy.orm import Session
 import os
@@ -78,6 +78,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(books.router)
+app.include_router(tags.router)
 app.include_router(collections.router)
 app.include_router(progress.router)
 app.include_router(users.router)

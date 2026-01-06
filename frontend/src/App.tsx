@@ -9,7 +9,8 @@ import EditMetadataModal from './components/EditMetadataModal';
 import UserSettingsModal from './components/UserSettingsModal';
 import UserManagementModal from './components/UserManagementModal';
 import Topbar from './components/Topbar';
-import { MagnifyingGlassIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import TagSearch from './components/TagSearch';
 import api from './api';
 import { useAuth } from './AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -211,30 +212,22 @@ function App() {
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">
-          <div className="flex-1 max-w-2xl relative">
-            <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search library..."
-              className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-10 focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-700 transition-all outline-none text-sm dark:text-slate-100"
+          <div className="flex-1 max-w-2xl">
+            <TagSearch
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={setSearchTerm}
+              onSearch={(query) => {
+                setSearchTerm(query);
+                setActiveFilter('search');
+                setPage(0);
+              }}
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                aria-label="Clear search"
-              >
-                <XMarkIcon className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 ml-4">
             <button
               onClick={() => refetch()}
-              className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               title="Refresh library"
             >
               <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />

@@ -2,15 +2,48 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
-# Base schemas
+# Tag schemas
 class TagBase(BaseModel):
-    name: str
+    name: str  # Normalized snake_case name
+    type: str = "meta"  # genre, theme, setting, tone, structure, character_trait, series, author, language, format, status, meta
+    description: Optional[str] = None
 
 class TagCreate(TagBase):
-    pass
+    aliases: List[str] = []  # Alternative names for this tag
 
 class Tag(TagBase):
     id: int
+    usage_count: int = 0
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class TagWithAliases(Tag):
+    """Tag schema with aliases included"""
+    aliases: List[str] = []
+
+class TagAutocomplete(BaseModel):
+    """Compact tag schema for autocomplete responses"""
+    id: int
+    name: str
+    type: str
+    usage_count: int
+    model_config = ConfigDict(from_attributes=True)
+
+class TagDetail(TagWithAliases):
+    """Extended tag information for tag detail pages"""
+    related_tags: List['TagAutocomplete'] = []  # Frequently co-occurring tags
+
+class TagAliasBase(BaseModel):
+    alias: str
+
+class TagAliasCreate(TagAliasBase):
+    canonical_tag_id: int
+
+class TagAlias(TagAliasBase):
+    id: int
+    canonical_tag_id: int
+    created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class AuthorBase(BaseModel):
@@ -199,4 +232,41 @@ class Bookmark(BookmarkBase):
     book_id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+# Bulk tag operation schemas
+class BulkTagOperation(BaseModel):
+    book_ids: List[int]
+    tag_names: List[str]
+    operation: str  # "add" or "remove"
+    source: str = "manual"  # manual, auto, import
+
+class BulkTagResult(BaseModel):
+    affected_books: int
+    tags_modified: List[str]
+    errors: List[str] = []
+
+# Auto-tagging schemas
+class AutoTagRule(BaseModel):
+    id: Optional[int] = None
+    name: str
+    condition_field: str  # format, language, series, etc.
+    condition_operator: str  # equals, not_equals, contains, not_null, null
+    condition_value: Optional[str] = None
+    tag_name: str
+    tag_type: str = "meta"
+    enabled: bool = True
+
+class AutoTagRuleCreate(BaseModel):
+    name: str
+    condition_field: str
+    condition_operator: str
+    condition_value: Optional[str] = None
+    tag_name: str
+    tag_type: str = "meta"
+    enabled: bool = True
+
+class AutoTagResult(BaseModel):
+    rules_applied: int
+    books_affected: int
+    tags_added: int
 
