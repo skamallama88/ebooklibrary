@@ -129,6 +129,19 @@ function App() {
     }
   };
 
+  const handleWordCount = async (ids: number[]) => {
+    try {
+      const res = await api.post('/utilities/word-count', ids);
+      alert(res.data.message);
+      if (res.data.updated_count > 0) {
+        refetch();
+      }
+    } catch (err) {
+      console.error("Failed to count words", err);
+      alert("Failed to update word counts");
+    }
+  };
+
   // Render appropriate content based on auth state
   // CRITICAL: No early returns - all hooks must be called on every render
   if (authLoading) {
@@ -189,6 +202,7 @@ function App() {
           toggleDarkMode={toggleDarkMode}
           onOpenSettings={() => setShowUserSettings(true)}
           onOpenUserManagement={() => setShowUserManagement(true)}
+          onWordCount={handleWordCount}
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">

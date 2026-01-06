@@ -48,6 +48,7 @@ class BookBase(BaseModel):
     language: Optional[str] = None
     description: Optional[str] = None
     rating: float = 0.0
+    word_count: Optional[int] = None
 
 class BookCreate(BookBase):
     authors: List[str] = []

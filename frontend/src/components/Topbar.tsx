@@ -7,7 +7,8 @@ import {
     SunIcon,
     MoonIcon,
     TrashIcon,
-    Square3Stack3DIcon
+    Square3Stack3DIcon,
+    WrenchIcon
 } from '@heroicons/react/24/outline';
 import UserMenu from './UserMenu';
 
@@ -23,6 +24,7 @@ interface TopbarProps {
     toggleDarkMode: () => void;
     onOpenSettings: () => void;
     onOpenUserManagement: () => void;
+    onWordCount?: (ids: number[]) => void;
 }
 
 const Topbar: React.FC<TopbarProps> = ({
@@ -37,13 +39,30 @@ const Topbar: React.FC<TopbarProps> = ({
     toggleDarkMode,
     onOpenSettings,
     onOpenUserManagement,
+    onWordCount,
 }) => {
     const isSingleSelection = selectedBookIds.length === 1;
     const isMultipleSelection = selectedBookIds.length > 1;
     const hasSelection = selectedBookIds.length > 0;
 
+    const [showUtilities, setShowUtilities] = React.useState(false);
+    const utilitiesRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (utilitiesRef.current && !utilitiesRef.current.contains(event.target as Node)) {
+                setShowUtilities(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     return (
-        <div className="h-12 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-20 transition-colors duration-200">
+        <div className="h-12 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-[60] transition-colors duration-200">
             <div className="flex items-center space-x-2">
                 <button
                     onClick={onAddBooks}
@@ -116,6 +135,39 @@ const Topbar: React.FC<TopbarProps> = ({
                         <MoonIcon className="w-5 h-5" />
                     )}
                 </button>
+                <div className="relative" ref={utilitiesRef}>
+                    <button
+                        onClick={() => setShowUtilities(!showUtilities)}
+                        className={`p-1.5 rounded-lg transition-colors ${showUtilities ? 'bg-slate-200 dark:bg-slate-700' : 'bg-slate-100 dark:bg-slate-800'} text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700`}
+                        title="Utilities"
+                    >
+                        <WrenchIcon className="w-5 h-5" />
+                    </button>
+                    {showUtilities && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 overflow-hidden z-50">
+                            <div className="py-1">
+                                <button
+                                    onClick={() => {
+                                        if (onWordCount) onWordCount(selectedBookIds);
+                                        setShowUtilities(false);
+                                    }}
+                                    disabled={!hasSelection}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    <span>Word Count</span>
+                                </button>
+                                <button
+                                    disabled={true}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center gap-2"
+                                    title="Coming Soon"
+                                >
+                                    <span>Summarizer</span>
+                                    <span className="text-[10px] uppercase bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Soon</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 <UserMenu 
                     onOpenSettings={onOpenSettings}
                     onOpenUserManagement={onOpenUserManagement}

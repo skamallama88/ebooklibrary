@@ -76,6 +76,7 @@ class Book(Base):
     language = Column(String)
     description = Column(Text)
     rating = Column(Float, default=0.0)
+    word_count = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

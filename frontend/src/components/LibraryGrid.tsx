@@ -39,6 +39,7 @@ interface Book {
     progress_percentage?: number;
     is_read?: boolean;
     last_read?: string;
+    word_count?: number;
 }
 
 const columnHelper = createColumnHelper<Book>();
@@ -259,6 +260,15 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             size: 120,
             minSize: 100,
             cell: (info) => <span className="text-slate-500 dark:text-slate-500 text-sm whitespace-nowrap">{new Date(info.getValue()).toLocaleDateString()}</span>,
+        }) as ColumnDef<Book>,
+        columnHelper.accessor('word_count', {
+            header: 'Words',
+            size: 100,
+            minSize: 80,
+            cell: (info) => {
+                const count = info.getValue();
+                return count ? <span className="text-slate-600 dark:text-slate-400 text-sm">{count.toLocaleString()}</span> : <span className="text-slate-400 dark:text-slate-600">—</span>;
+            },
         }) as ColumnDef<Book>,
         columnHelper.accessor('last_read', {
             header: 'Last Read',

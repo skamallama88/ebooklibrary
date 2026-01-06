@@ -4,7 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from . import models, database
 from .services import auth as auth_service
-from .routers import books, auth, collections, progress, users
+from .routers import books, auth, collections, progress, users, utilities
 from .middleware import limiter, rate_limit_exceeded_handler
 from sqlalchemy.orm import Session
 import os
@@ -22,6 +22,14 @@ with database.engine.connect() as conn:
             conn.execute(text("ALTER TABLE users ADD COLUMN recently_read_limit_days INTEGER DEFAULT 30"))
             conn.commit()
             print("Successfully added recently_read_limit_days column to users table")
+            
+        # Check for word_count in books
+        result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='books' AND column_name='word_count'"))
+        if not result.fetchone():
+            conn.execute(text("ALTER TABLE books ADD COLUMN word_count INTEGER"))
+            conn.commit()
+            print("Successfully added word_count column to books table")
+            
     except Exception as e:
         print(f"Migration error: {e}")
 
@@ -73,6 +81,7 @@ app.include_router(books.router)
 app.include_router(collections.router)
 app.include_router(progress.router)
 app.include_router(users.router)
+app.include_router(utilities.router)
 
 @app.get("/")
 async def root():

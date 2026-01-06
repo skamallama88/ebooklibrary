@@ -10,8 +10,7 @@ Future features to add
 - [x] Add remove coumns per user requirements
 - [x] rating Column
 - [ ] Method to add rating.
-- [ ] Duplicate Handling
-- [ ] 
+- [ ] Change Tag, Search handling to be booru style with +/- from options
 
 
 Add suport for "writing metadata to files" (like Calibre's "Embed Metadata" feature), we would need to add specific libraries like lxml or pikepdf to modify the binary files directly, but currently, the database remains the "source of truth" for the UI.

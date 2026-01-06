@@ -32,6 +32,7 @@ interface Book {
     published_date?: string;
     rating: number;
     cover_path?: string;
+    word_count?: number;
 }
 
 interface BookDetailPanelProps {
@@ -209,6 +210,10 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-400 dark:text-slate-500">File Size</span>
                                         <span className="font-medium text-slate-700 dark:text-slate-200">{(book.file_size / (1024 * 1024)).toFixed(2)} MB</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-400 dark:text-slate-500">Word Count</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">{book.word_count ? book.word_count.toLocaleString() : 'N/A'}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-400 dark:text-slate-500">Language</span>
