@@ -89,7 +89,7 @@ const Topbar: React.FC<TopbarProps> = ({
                 {/* Add Books - always visible but icon-only on mobile */}
                 <button
                     onClick={onAddBooks}
-                    className="flex items-center space-x-1.5 px-2 md:px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm touch-target"
+                    className="flex items-center justify-center space-x-1.5 px-2 md:px-3 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm touch-target"
                 >
                     <PlusIcon className="w-4 h-4" />
                     <span className="hidden md:inline">Add Books</span>
@@ -99,16 +99,18 @@ const Topbar: React.FC<TopbarProps> = ({
                     <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1 md:mx-2" />
                 )}
 
-                {/* Read button - visible on all screens */}
-                <button
-                    onClick={() => isSingleSelection && onRead(selectedBookIds[0])}
-                    disabled={!isSingleSelection}
-                    className="flex items-center space-x-1.5 px-2 md:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-30 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors shadow-sm touch-target"
-                    title={isMultipleSelection ? "Select only one book to read" : ""}
-                >
-                    <BookOpenIcon className="w-4 h-4" />
-                    <span className="hidden sm:inline">Read</span>
-                </button>
+                {/* Read button - hidden on mobile (redundant with detail panel) */}
+                {!isMobile && (
+                    <button
+                        onClick={() => isSingleSelection && onRead(selectedBookIds[0])}
+                        disabled={!isSingleSelection}
+                        className="flex items-center justify-center space-x-1.5 px-3 h-11 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-30 disabled:cursor-not-allowed rounded-md text-sm font-medium transition-colors shadow-sm"
+                        title={isMultipleSelection ? "Select only one book to read" : ""}
+                    >
+                        <BookOpenIcon className="w-4 h-4" />
+                        <span>Read</span>
+                    </button>
+                )}
 
                 {/* Desktop-only buttons */}
                 {!isMobile && (
@@ -156,7 +158,7 @@ const Topbar: React.FC<TopbarProps> = ({
                     <div className="relative" ref={mobileMenuRef}>
                         <button
                             onClick={() => setShowMobileMenu(!showMobileMenu)}
-                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors touch-target"
+                            className="flex items-center justify-center h-11 w-11 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                             aria-label="More actions"
                         >
                             <EllipsisVerticalIcon className="w-5 h-5" />

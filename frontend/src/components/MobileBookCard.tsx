@@ -1,5 +1,6 @@
 import React from 'react';
 import { clsx } from 'clsx';
+import api from '../api';
 
 interface Author {
     id: number;
@@ -61,20 +62,23 @@ const MobileBookCard: React.FC<MobileBookCardProps> = ({
             {/* Cover Thumbnail (Optional) */}
             {showThumbnails && (
                 <div className="shrink-0 w-12 h-16 bg-slate-100 dark:bg-slate-700 rounded overflow-hidden">
-                    {book.cover_url ? (
-                        <img
-                            src={book.cover_url}
-                            alt={book.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                        </div>
-                    )}
+                    <img
+                        src={`${api.defaults.baseURL}/books/${book.id}/cover`}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                            // Hide image and show placeholder on error
+                            e.currentTarget.style.display = 'none';
+                            const placeholder = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (placeholder) placeholder.style.display = 'flex';
+                        }}
+                    />
+                    <div className="w-full h-full hidden items-center justify-center text-slate-400 dark:text-slate-500 text-xs">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
                 </div>
             )}
 

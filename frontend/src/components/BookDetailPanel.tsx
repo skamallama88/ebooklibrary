@@ -393,7 +393,13 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                     ) : (
                         <>
                             <button
-                                onClick={() => book && onRead && onRead(book.id)}
+                                onClick={() => {
+                                    if (book && onRead) {
+                                        onRead(book.id);
+                                        // Close panel so reader is visible (especially important on mobile)
+                                        onClose();
+                                    }
+                                }}
                                 className="flex-2 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 shadow-sm"
                             >
                                 <span>Read Book</span>

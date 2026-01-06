@@ -188,14 +188,23 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                             key={item.id}
                             onClick={() => onFilterChange(item.id)}
                             className={clsx(
-                                "w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all",
+                                "w-full flex items-center px-3 py-2.5 rounded-xl transition-all",
+                                // On mobile, show icons + text in column layout
+                                isMobile && "flex-col space-y-1",
+                                // On desktop collapsed, just icon
+                                !isMobile && !collapsed && "space-x-3",
                                 activeFilter === item.id
                                     ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
                                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
                             )}
                         >
                             <item.icon className="w-5 h-5 shrink-0" />
-                            {!collapsed && <span>{item.label}</span>}
+                            {/* Show text if not collapsed on desktop, or always on mobile */}
+                            {(!collapsed || isMobile) && (
+                                <span className={clsx(
+                                    isMobile && "text-[10px] font-medium"
+                                )}>{item.label}</span>
+                            )}
                         </button>
                     ))}
                 </div>
