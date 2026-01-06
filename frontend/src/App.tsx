@@ -73,11 +73,12 @@ function App() {
         limit,
       };
 
-      // Only add search if we have a search term AND we're not using a special filter
-      if (searchTerm && !['all', 'recent', 'recently_read'].includes(activeFilter) && !activeFilter.startsWith('collection:')) {
+      // Add search term if present (works with all filters)
+      if (searchTerm) {
         params.search = searchTerm;
       }
 
+      // Apply filter-specific parameters
       if (activeFilter.startsWith('tag:') && !activeFilter.includes('"')) {
         params.tag = activeFilter.split(':')[1];
       } else if (activeFilter.startsWith('author:') && !activeFilter.includes('"')) {
