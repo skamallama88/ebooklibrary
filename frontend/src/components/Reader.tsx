@@ -15,6 +15,7 @@ import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 import { Document, Page, pdfjs } from 'react-pdf';
 import api from '../api';
 import { clsx } from 'clsx';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 // Set up PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -29,6 +30,7 @@ interface ReaderProps {
 }
 
 const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
+    const { isMobile } = useMediaQuery();
     const viewerRef = useRef<HTMLDivElement>(null);
     const renditionRef = useRef<Rendition | null>(null);
     const [title, setTitle] = useState('');
@@ -62,8 +64,12 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const [isTwoPage, setIsTwoPage] = useState(() => {
         try {
             const saved = localStorage.getItem('reader-settings');
-            return saved ? JSON.parse(saved).isTwoPage ?? true : true;
-        } catch { return true; }
+            // Default to single-page on mobile
+            const defaultValue = typeof window !== 'undefined' && window.innerWidth < 640 ? false : true;
+            return saved ? JSON.parse(saved).isTwoPage ?? defaultValue : defaultValue;
+        } catch {
+            return typeof window !== 'undefined' && window.innerWidth < 640 ? false : true;
+        }
     });
     const [fontFamily, setFontFamily] = useState<'serif' | 'sans-serif'>(() => {
         try {
@@ -504,18 +510,18 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const containerBg = theme === 'sepia' ? 'bg-[#ebe4d1]' : theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-slate-100';
 
     return (
-        <div className={clsx("fixed inset-0 z-[60] flex flex-col animate-in fade-in zoom-in duration-300", readerBg)}>
+        <div className={clsx("fixed inset-0 z-[60] flex flex-col", readerBg)}>
             {/* Toolbar */}
-            <div className={clsx("h-14 border-b flex items-center justify-between px-4 shrink-0 transition-colors z-[70] relative",
+            <div className={clsx("h-14 border-b flex items-center justify-between px-2 md:px-4 shrink-0 transition-colors z-[70] relative",
                 theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-300" : "bg-slate-50 text-slate-600")}>
-                <div className="flex items-center space-x-4">
-                    <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-lg transition-colors">
+                <div className="flex items-center space-x-2 md:space-x-4">
+                    <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-lg transition-colors touch-target">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => setShowSidebar(!showSidebar)}
-                        className={clsx("p-2 rounded-lg transition-colors", showSidebar ? "bg-blue-100 text-blue-600" : "hover:bg-black/5")}
+                        className={clsx("p-2 rounded-lg transition-colors touch-target", showSidebar ? "bg-blue-100 text-blue-600" : "hover:bg-black/5")}
                     >
                         <ListBulletIcon className="w-5 h-5" />
                     </button>
@@ -550,12 +556,13 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
 
                     <button
                         onClick={() => setShowSettings(!showSettings)}
-                        className={clsx("p-2 rounded-lg transition-colors", showSettings ? "bg-blue-100 text-blue-600" : "hover:bg-black/5")}
+                        className={clsx("p-2 rounded-lg transition-colors touch-target", showSettings ? "bg-blue-100 text-blue-600" : "hover:bg-black/5")}
                     >
                         <AdjustmentsHorizontalIcon className="w-5 h-5" />
                     </button>
 
-                    {showSettings && (
+                    {/* Desktop Settings Dropdown */}
+                    {!isMobile && showSettings && (
                         <div className="absolute right-0 top-12 w-64 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border dark:border-slate-700 z-50 text-slate-800 dark:text-slate-100 animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="space-y-4">
                                 <div>
@@ -612,13 +619,112 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 </div>
             </div>
 
-            {/* Sidebar (TOC & Bookmarks) */}
+            {/* Mobile Bottom Sheet Settings */}
+            {isMobile && showSettings && (
+                <>
+                    <div 
+                        className="fixed inset-0 bg-black/50 z-[75]"
+                        onClick={() => setShowSettings(false)}
+                    />
+                    <div className="fixed bottom-0 left-0 right-0 z-[80] bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+                        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+                            <h3 className="font-semibold text-slate-800 dark:text-slate-100">Reader Settings</h3>
+                            <button onClick={() => setShowSettings(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg touch-target">
+                                <XMarkIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-6">
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-3">Theme</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button onClick={() => setTheme('light')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all touch-target", theme === 'light' ? "border-blue-500 bg-blue-50 text-blue-600" : "bg-white border-slate-200 text-slate-600")}>
+                                        Light
+                                    </button>
+                                    <button onClick={() => setTheme('sepia')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all touch-target", theme === 'sepia' ? "border-orange-400 bg-orange-50 text-orange-700" : "bg-[#f4ecd8] border-[#e1d9c5] text-[#5b4636]")}>
+                                        Sepia
+                                    </button>
+                                    <button onClick={() => setTheme('dark')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all touch-target", theme === 'dark' ? "border-blue-500 bg-slate-700 text-white" : "bg-slate-900 border-slate-800 text-slate-400")}>
+                                        Dark
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between items-center mb-3">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Font Size</label>
+                                    <span className="text-sm font-bold text-blue-500">{fontSize}%</span>
+                                </div>
+                                <input
+                                    type="range" min="60" max="200" step="10"
+                                    value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))}
+                                    className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-3">Typeface</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => setFontFamily('serif')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all font-serif touch-target", fontFamily === 'serif' ? "border-blue-500 bg-blue-50 text-blue-600" : "bg-white border-slate-200 text-slate-600")}>
+                                        Serif
+                                    </button>
+                                    <button onClick={() => setFontFamily('sans-serif')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all font-sans touch-target", fontFamily === 'sans-serif' ? "border-blue-500 bg-blue-50 text-blue-600" : "bg-white border-slate-200 text-slate-600")}>
+                                        Sans
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-3">Layout</label>
+                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                    <button onClick={() => setFlowMode('paginated')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all touch-target", flowMode === 'paginated' ? "border-blue-500 bg-blue-50 text-blue-600" : "bg-white border-slate-200 text-slate-600")}>
+                                        Paged
+                                    </button>
+                                    <button onClick={() => setFlowMode('scrolled')} className={clsx("px-3 py-2.5 rounded-lg text-sm font-medium border transition-all touch-target", flowMode === 'scrolled' ? "border-blue-500 bg-blue-50 text-blue-600" : "bg-white border-slate-200 text-slate-600")}>
+                                        Scroll
+                                    </button>
+                                </div>
+
+                                {flowMode === 'paginated' && (
+                                    <button
+                                        onClick={() => setIsTwoPage(!isTwoPage)}
+                                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-700 rounded-lg text-sm font-medium transition-all touch-target"
+                                    >
+                                        <span>Two Page Spread</span>
+                                        <div className={clsx("w-10 h-5 rounded-full transition-colors relative", isTwoPage ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-700")}>
+                                            <div className={clsx("absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform", isTwoPage ? "translate-x-5.5" : "translate-x-0.5")} />
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Sidebar (TOC & Bookmarks) - Full screen on mobile */}
             <div className={clsx(
-                "fixed inset-y-0 left-0 w-80 bg-white dark:bg-slate-900 z-[65] shadow-2xl transform transition-transform duration-300 ease-in-out border-r dark:border-slate-800 flex flex-col",
-                showSidebar ? "translate-x-0" : "-translate-x-full",
-                // Push content? separate from toolbar?
-                "mt-14" // below toolbar
+                "bg-white dark:bg-slate-900 z-[75] shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col",
+                // Desktop: side panel
+                !isMobile && [
+                    "fixed inset-y-0 left-0 w-80 border-r dark:border-slate-800 mt-14",
+                    showSidebar ? "translate-x-0" : "-translate-x-full"
+                ],
+                // Mobile: full screen
+                isMobile && [
+                    "fixed inset-0",
+                    showSidebar ? "translate-y-0" : "translate-y-full"
+                ]
             )}>
+                {/* Header with close button on mobile */}
+                {isMobile && (
+                    <div className="px-4 py-3 border-b dark:border-slate-800 flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-100">Navigation</h3>
+                        <button onClick={() => setShowSidebar(false)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg touch-target">
+                            <XMarkIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex border-b dark:border-slate-800">
                     <button
                         onClick={() => setActiveTab('chapters')}
@@ -716,18 +822,18 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                     </div>
                 )}
 
-                {/* Click regions for navigation */}
-                <div className="absolute inset-y-0 left-0 w-32 z-20 cursor-pointer group" onClick={prev}>
-                    <div className="h-full flex items-center pl-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-full shadow-lg">
-                            <ChevronLeftIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                {/* Click regions for navigation - Larger on mobile */}
+                <div className={clsx("absolute inset-y-0 left-0 z-20 cursor-pointer group", isMobile ? "w-20" : "w-32")} onClick={prev}>
+                    <div className="h-full flex items-center pl-2 md:pl-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={clsx("flex items-center justify-center bg-white/90 dark:bg-slate-800/90 rounded-full shadow-lg", isMobile ? "w-12 h-12" : "p-2")}>
+                            <ChevronLeftIcon className={clsx("text-slate-600 dark:text-slate-300", isMobile ? "w-7 h-7" : "w-6 h-6")} />
                         </div>
                     </div>
                 </div>
-                <div className="absolute inset-y-0 right-0 w-32 z-20 cursor-pointer group" onClick={next}>
-                    <div className="h-full flex items-center justify-end pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-full shadow-lg">
-                            <ChevronRightIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                <div className={clsx("absolute inset-y-0 right-0 z-20 cursor-pointer group", isMobile ? "w-20" : "w-32")} onClick={next}>
+                    <div className="h-full flex items-center justify-end pr-2 md:pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className={clsx("flex items-center justify-center bg-white/90 dark:bg-slate-800/90 rounded-full shadow-lg", isMobile ? "w-12 h-12" : "p-2")}>
+                            <ChevronRightIcon className={clsx("text-slate-600 dark:text-slate-300", isMobile ? "w-7 h-7" : "w-6 h-6")} />
                         </div>
                     </div>
                 </div>
@@ -789,9 +895,11 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                         style={{ width: `${format === 'pdf' ? (numPages > 0 ? (pageNumber / numPages) * 100 : 0) : ((location?.start.percentage || 0) * 100)}%` }}
                     />
                 </div>
+                {/* Simplified navigation hint on mobile */}
                 <div className={clsx("h-8 border-t flex items-center justify-center text-[10px] font-medium uppercase tracking-widest transition-colors",
-                    theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 text-slate-400")}>
-                    {flowMode === 'scrolled' ? 'Use mouse or arrows to scroll' : 'Use arrows or click sides to navigate'}
+                    theme === 'dark' ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 text-slate-400",
+                    isMobile && "hidden")}>
+                    {isMobile ? 'Tap sides to navigate' : (flowMode === 'scrolled' ? 'Use mouse or arrows to scroll' : 'Use arrows or click sides to navigate')}
                 </div>
             </div>
         </div>
