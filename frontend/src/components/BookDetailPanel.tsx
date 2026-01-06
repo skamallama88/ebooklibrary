@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PencilSquareIcon, CheckIcon, PlusIcon } from '@heroicons/react/24/outline';
 import api from '../api';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { clsx } from 'clsx';
 
 interface Author {
     id: number;
@@ -43,6 +45,7 @@ interface BookDetailPanelProps {
 }
 
 const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUpdate, onRead }) => {
+    const { isMobile } = useMediaQuery();
     const [book, setBook] = useState<Book | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -143,18 +146,40 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
     if (!bookId) return null;
 
     return (
-        <div className={`absolute top-12 bottom-0 right-0 w-96 bg-white dark:bg-slate-900 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-slate-200 dark:border-slate-800 ${bookId ? 'translate-x-0' : 'translate-x-full'}`}>
+        <>
+            {/* Mobile overlay */}
+            {isMobile && bookId && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-[70]"
+                    onClick={onClose}
+                />
+            )}
+            
+            {/* Panel/Modal */}
+            <div className={clsx(
+                "bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300 ease-in-out border-slate-200 dark:border-slate-800",
+                // Desktop: side panel
+                !isMobile && [
+                    "absolute top-12 bottom-0 right-0 w-96 z-50 border-l",
+                    bookId ? 'translate-x-0' : 'translate-x-full'
+                ],
+                // Mobile: full-screen modal
+                isMobile && [
+                    "fixed inset-0 z-[80]",
+                    bookId ? 'translate-y-0' : 'translate-y-full'
+                ]
+            )}>
             <div className="h-full flex flex-col">
                 {/* Header */}
-                <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 shrink-0">
                     <h3 className="font-bold text-slate-800 dark:text-slate-100">Book Details</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400">
+                    <button onClick={onClose} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-400 touch-target">
                         <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6">
                     {isLoading ? (
                         <div className="animate-pulse space-y-4">
                             <div className="aspect-[2/3] bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
@@ -348,7 +373,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                 </div>
 
                 {/* Actions */}
-                <div className="p-4 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex space-x-2 transition-colors duration-200">
+                <div className="p-4 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex gap-2 transition-colors duration-200 shrink-0">
                     {isEditing ? (
                         <>
                             <button
@@ -385,6 +410,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

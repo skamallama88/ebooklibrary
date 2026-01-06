@@ -12,6 +12,8 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { clsx } from 'clsx';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import MobileBookCard from './MobileBookCard';
 
 interface Author {
     id: number;
@@ -87,7 +89,8 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
     sorting = [],
     onSortingChange
 }) => {
-    const [rowSelection, setRowSelection] = React.useState({})
+    const { isMobile } = useMediaQuery();
+    const [rowSelection, setRowSelection] = React.useState({});
 
     // Load column visibility and sizing from localStorage
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
@@ -420,9 +423,42 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
 
     if (!isLoading && data.length === 0) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-2">
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-2 p-6">
                 <p className="text-lg font-medium">No books found</p>
                 <p className="text-sm">Try adjusting your search or import some books.</p>
+            </div>
+        );
+    }
+
+    // Mobile Card View
+    if (isMobile) {
+        return (
+            <div className="flex-1 overflow-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-950">
+                {isLoading ? (
+                    // Loading skeleton
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                            <div className="flex gap-3">
+                                <div className="w-12 h-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                                    <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    data.map((book) => (
+                        <MobileBookCard
+                            key={book.id}
+                            book={book}
+                            isSelected={selectedBookId === book.id}
+                            onClick={() => onRowClick && onRowClick(book)}
+                            showThumbnails={true}
+                        />
+                    ))
+                )}
             </div>
         );
     }
