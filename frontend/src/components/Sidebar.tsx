@@ -1,7 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-    Library as LibraryIcon,
     Bookmark as BookmarkIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
@@ -9,7 +8,9 @@ import {
     ChevronUp as ChevronUpIcon,
     Plus as PlusIcon,
     Pencil as PencilIcon,
-    Trash2 as Trash2Icon
+    Trash2 as Trash2Icon,
+    Clock as ClockIcon,
+    BookOpen as BookOpenIcon
 } from 'lucide-react';
 import api from '../api';
 import { clsx } from 'clsx';
@@ -106,8 +107,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
     };
 
     const menuItems = [
-        { id: 'all', label: 'All Books', icon: LibraryIcon },
+        { id: 'all', label: 'All Books', icon: BookOpenIcon },
         { id: 'recent', label: 'Recently Added', icon: BookmarkIcon },
+        { id: 'recently_read', label: 'Recently Read', icon: ClockIcon },
     ];
 
     return (
@@ -276,10 +278,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                                 {authors?.slice(0, 8).map((author: any) => (
                                     <button
                                         key={author.id}
-                                        onClick={() => onFilterChange(`author:${author.name}`)}
+                                        onClick={() => onFilterChange(`authors:"=${author.name}"`)}
                                         className={clsx(
                                             "w-full text-left px-2 py-1 rounded text-xs transition-all truncate",
-                                            activeFilter === `author:${author.name}`
+                                            activeFilter === `authors:"=${author.name}"`
                                                 ? "bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-medium"
                                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                                         )}
@@ -308,10 +310,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                                 {publishers?.slice(0, 8).map((pub: string) => (
                                     <button
                                         key={pub}
-                                        onClick={() => onFilterChange(`publisher:${pub}`)}
+                                        onClick={() => onFilterChange(`publishers:"=${pub}"`)}
                                         className={clsx(
                                             "w-full text-left px-2 py-1 rounded text-xs transition-all truncate",
-                                            activeFilter === `publisher:${pub}`
+                                            activeFilter === `publishers:"=${pub}"`
                                                 ? "bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-medium"
                                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                                         )}
@@ -340,10 +342,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                                 {tags?.slice(0, 10).map((tag: any) => (
                                     <button
                                         key={tag.id}
-                                        onClick={() => onFilterChange(`tag:${tag.name}`)}
+                                        onClick={() => onFilterChange(`tags:"=${tag.name}"`)}
                                         className={clsx(
                                             "px-2 py-1 rounded-md text-xs font-medium transition-all",
-                                            activeFilter === `tag:${tag.name}`
+                                            activeFilter === `tags:"=${tag.name}"`
                                                 ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
                                                 : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                                         )}
@@ -378,18 +380,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                         <PlusIcon className={clsx("w-4 h-4", isScanning && "animate-spin")} />
                         <span>{isScanning ? "Scanning..." : "Scan Library"}</span>
                     </button>
-                )}
-
-                {!collapsed ? (
-                    <div className="flex items-center space-x-3 p-2">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">Admin</p>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">Librarian</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 mx-auto" />
                 )}
             </div>
         </aside>

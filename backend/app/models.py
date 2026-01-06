@@ -41,6 +41,7 @@ class User(Base):
     font_family = Column(String, default="serif")  # serif, sans-serif
     page_layout = Column(String, default="paginated")  # paginated, scrolled, two-page
     notifications_enabled = Column(Boolean, default=True)
+    recently_read_limit_days = Column(Integer, default=30)
     
     progress = relationship("ReadingProgress", back_populates="user")
     collections = relationship("Collection", back_populates="owner")

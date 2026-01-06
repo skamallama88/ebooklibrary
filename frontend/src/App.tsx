@@ -70,19 +70,26 @@ function App() {
       const params: any = {
         skip: page * limit,
         limit,
-        search: searchTerm || undefined,
       };
 
-      if (activeFilter.startsWith('tag:')) {
+      // Only add search if we have a search term AND we're not using a special filter
+      if (searchTerm && !['all', 'recent', 'recently_read'].includes(activeFilter) && !activeFilter.startsWith('collection:')) {
+        params.search = searchTerm;
+      }
+
+      if (activeFilter.startsWith('tag:') && !activeFilter.includes('"')) {
         params.tag = activeFilter.split(':')[1];
-      } else if (activeFilter.startsWith('author:')) {
+      } else if (activeFilter.startsWith('author:') && !activeFilter.includes('"')) {
         params.author = activeFilter.split(':')[1];
-      } else if (activeFilter.startsWith('publisher:')) {
+      } else if (activeFilter.startsWith('publisher:') && !activeFilter.includes('"')) {
         params.publisher = activeFilter.split(':')[1];
       } else if (activeFilter.startsWith('collection:')) {
         params.collection_id = Number(activeFilter.split(':')[1]);
       } else if (activeFilter === 'recent') {
         params.sort_by = 'recent';
+      } else if (activeFilter === 'recently_read') {
+        params.sort_by = 'last_read';
+        params.sort_order = 'desc';
       }
 
       if (sorting.length > 0) {
@@ -144,7 +151,23 @@ function App() {
         setCollapsed={setSidebarCollapsed}
         activeFilter={activeFilter}
         onFilterChange={(filter: string) => {
-          setActiveFilter(filter);
+          if (filter === 'all') {
+            setActiveFilter('all');
+            setSearchTerm('');
+          } else if (filter === 'recent') {
+            setActiveFilter('recent');
+            setSearchTerm('');
+          } else if (filter === 'recently_read') {
+            setActiveFilter('recently_read');
+            setSearchTerm('');
+          } else if (filter.startsWith('collection:')) {
+            setActiveFilter(filter);
+            setSearchTerm('');
+          } else {
+            // Calibre-style tags, author, publisher
+            setSearchTerm(filter);
+            setActiveFilter(filter);
+          }
           setPage(0);
         }}
       />
@@ -255,7 +278,10 @@ function App() {
       {readerBookId && (
         <Reader
           bookId={readerBookId}
-          onClose={() => setReaderBookId(null)}
+          onClose={() => {
+            setReaderBookId(null);
+            refetch();
+          }}
         />
       )}
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, U
 from fastapi.responses import FileResponse
 import shutil
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 import os
 from .. import models, schemas, database
@@ -34,19 +35,42 @@ def get_books(
     query = db.query(models.Book)
     
     if search:
-        # Search Title, Authors, and Tags
-        search_filter = models.Book.title.ilike(f"%{search}%")
+        import re
+        # Check for Calibre-style tags:"=VALUE", author:"=VALUE", publisher:"=VALUE"
+        tag_match = re.search(r'tags:"=(.*?)"', search)
+        author_match = re.search(r'authors?:"=(.*?)"', search)
+        publisher_match = re.search(r'publishers?:"=(.*?)"', search)
         
-        # Add Author search
-        query = query.outerjoin(models.Book.authors)
-        search_filter = search_filter | models.Author.name.ilike(f"%{search}%")
+        if tag_match:
+            tag_val = tag_match.group(1)
+            query = query.join(models.Book.tags).filter(models.Tag.name == tag_val)
+            search = search.replace(f'tags:"={tag_val}"', "").strip()
         
-        # Add Tag search
-        query = query.outerjoin(models.Book.tags)
-        search_filter = search_filter | models.Tag.name.ilike(f"%{search}%")
-        
-        query = query.filter(search_filter)
+        if author_match:
+            author_val = author_match.group(1)
+            query = query.join(models.Book.authors).filter(models.Author.name == author_val)
+            search = re.sub(r'authors?:"=.*?"', "", search).strip()
+            
+        if publisher_match:
+            publisher_val = publisher_match.group(1)
+            query = query.filter(models.Book.publisher == publisher_val)
+            search = re.sub(r'publishers?:"=.*?"', "", search).strip()
+
+        if search:
+            # Search Remaining Title, Authors, and Tags
+            search_filter = models.Book.title.ilike(f"%{search}%")
+            
+            # Add Author search
+            query = query.outerjoin(models.Book.authors)
+            search_filter = search_filter | models.Author.name.ilike(f"%{search}%")
+            
+            # Add Tag search
+            query = query.outerjoin(models.Book.tags)
+            search_filter = search_filter | models.Tag.name.ilike(f"%{search}%")
+            
+            query = query.filter(search_filter)
     
+    # Original specific filters (still supported for now)
     if tag:
         query = query.join(models.Book.tags).filter(models.Tag.name == tag)
         
@@ -59,6 +83,12 @@ def get_books(
     if collection_id:
         query = query.join(models.Book.collections).filter(models.Collection.id == collection_id)
     
+    if sort_by == "last_read":
+        query = query.join(models.ReadingProgress).filter(
+            models.ReadingProgress.user_id == current_user.id,
+            models.ReadingProgress.last_read >= datetime.now(timezone.utc) - timedelta(days=current_user.recently_read_limit_days)
+        )
+    
     total = query.distinct().count()
     
     # Sorting logic
@@ -67,6 +97,8 @@ def get_books(
         order_col = models.Book.created_at
     elif sort_by == "rating":
         order_col = models.Book.rating
+    elif sort_by == "last_read":
+        order_col = models.ReadingProgress.last_read
     elif sort_by == "title":
         order_col = models.Book.title
         
@@ -75,7 +107,13 @@ def get_books(
     else:
         query = query.order_by(order_col.asc())
         
-    books = query.distinct().offset(skip).limit(limit).all()
+    if sort_by == "last_read":
+        # Cannot use distinct() when ordering by a column not in SELECT list (Postgres restriction)
+        # Since we filter by user_id and don't join multi-valued tables (tags/authors) for this specific filter,
+        # results are guaranteed unique per book.
+        books = query.offset(skip).limit(limit).all()
+    else:
+        books = query.distinct().offset(skip).limit(limit).all()
     
     # Fetch reading progress for current user
     progress_map = {}
@@ -89,7 +127,8 @@ def get_books(
         for progress in progress_records:
             progress_map[progress.book_id] = {
                 'percentage': progress.percentage,
-                'is_finished': progress.is_finished
+                'is_finished': progress.is_finished,
+                'last_read': progress.last_read
             }
     
     # Build response with progress
@@ -99,6 +138,7 @@ def get_books(
         progress = progress_map.get(book.id, {})
         book_dict['progress_percentage'] = progress.get('percentage')
         book_dict['is_read'] = bool(progress.get('is_finished', 0))
+        book_dict['last_read'] = progress.get('last_read')
         items_with_progress.append(schemas.BookWithProgress(**book_dict))
     
     return {

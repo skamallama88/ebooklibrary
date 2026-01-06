@@ -87,6 +87,7 @@ class BookWithProgress(Book):
     """Book schema extended with user-specific reading progress"""
     progress_percentage: Optional[float] = None
     is_read: bool = False
+    last_read: Optional[datetime] = None
     
 class PaginatedBookListWithProgress(BaseModel):
     items: List[BookWithProgress]
@@ -135,6 +136,7 @@ class ReadingPreferences(BaseModel):
     font_size: int = 16
     font_family: str = "serif"  # serif, sans-serif
     page_layout: str = "paginated"  # paginated, scrolled, two-page
+    recently_read_limit_days: int = 30
 
 class NotificationPreferences(BaseModel):
     notifications_enabled: bool = True
@@ -154,6 +156,7 @@ class UserSettingsUpdate(BaseModel):
     font_family: Optional[str] = None
     page_layout: Optional[str] = None
     notifications_enabled: Optional[bool] = None
+    recently_read_limit_days: Optional[int] = None
 
 class PasswordChange(BaseModel):
     current_password: str

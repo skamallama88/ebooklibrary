@@ -15,6 +15,7 @@ interface UserSettings {
         font_size: number;
         font_family: string;
         page_layout: string;
+        recently_read_limit_days: number;
     };
     notification_preferences: {
         notifications_enabled: boolean;
@@ -67,6 +68,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
                 font_size: settings.reading_preferences.font_size,
                 font_family: settings.reading_preferences.font_family,
                 page_layout: settings.reading_preferences.page_layout,
+                recently_read_limit_days: settings.reading_preferences.recently_read_limit_days,
                 notifications_enabled: settings.notification_preferences.notifications_enabled
             });
             setSaveMessage('Settings saved successfully!');
@@ -249,8 +251,29 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
                                 >
                                     <option value="paginated">Paginated</option>
                                     <option value="scrolled">Continuous Scroll</option>
-                                    <option value="two-page">Two Page Spread</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Recently Read Limit (Days)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="365"
+                                    value={settings.reading_preferences.recently_read_limit_days}
+                                    onChange={(e) => setSettings({
+                                        ...settings,
+                                        reading_preferences: {
+                                            ...settings.reading_preferences,
+                                            recently_read_limit_days: parseInt(e.target.value) || 30
+                                        }
+                                    })}
+                                    className="w-full px-3 py-2 border dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Books last read more than this many days ago will be hidden from the "Recently Read" section.
+                                </p>
                             </div>
                         </div>
                     </div>

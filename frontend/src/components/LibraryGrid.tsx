@@ -38,6 +38,7 @@ interface Book {
     series_index?: number;
     progress_percentage?: number;
     is_read?: boolean;
+    last_read?: string;
 }
 
 const columnHelper = createColumnHelper<Book>();
@@ -258,6 +259,32 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             size: 120,
             minSize: 100,
             cell: (info) => <span className="text-slate-500 dark:text-slate-500 text-sm whitespace-nowrap">{new Date(info.getValue()).toLocaleDateString()}</span>,
+        }) as ColumnDef<Book>,
+        columnHelper.accessor('last_read', {
+            header: 'Last Read',
+            size: 130,
+            minSize: 100,
+            cell: (info) => {
+                const date = info.getValue();
+                if (!date) return <span className="text-slate-400 dark:text-slate-600">—</span>;
+                const lastRead = new Date(date);
+                const now = new Date();
+                const diffMs = now.getTime() - lastRead.getTime();
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                let displayText = '';
+                if (diffDays === 0) {
+                    displayText = 'Today';
+                } else if (diffDays === 1) {
+                    displayText = 'Yesterday';
+                } else if (diffDays < 7) {
+                    displayText = `${diffDays} days ago`;
+                } else {
+                    displayText = lastRead.toLocaleDateString();
+                }
+                
+                return <span className="text-slate-600 dark:text-slate-400 text-sm whitespace-nowrap" title={lastRead.toLocaleString()}>{displayText}</span>;
+            },
         }) as ColumnDef<Book>,
         columnHelper.accessor('format', {
             header: 'Format',

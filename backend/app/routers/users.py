@@ -16,7 +16,8 @@ async def get_user_settings(current_user: models.User = Depends(auth_service.get
         reading_preferences=schemas.ReadingPreferences(
             font_size=current_user.font_size,
             font_family=current_user.font_family,
-            page_layout=current_user.page_layout
+            page_layout=current_user.page_layout,
+            recently_read_limit_days=current_user.recently_read_limit_days
         ),
         notification_preferences=schemas.NotificationPreferences(
             notifications_enabled=current_user.notifications_enabled
@@ -69,6 +70,11 @@ async def update_user_settings(
     if settings.notifications_enabled is not None:
         current_user.notifications_enabled = settings.notifications_enabled
     
+    # Update recently read limit
+    if settings.recently_read_limit_days is not None:
+        if settings.recently_read_limit_days < 1:
+            raise HTTPException(status_code=400, detail="Recently read limit must be at least 1 day")
+        current_user.recently_read_limit_days = settings.recently_read_limit_days
     db.commit()
     db.refresh(current_user)
     
@@ -79,7 +85,8 @@ async def update_user_settings(
         reading_preferences=schemas.ReadingPreferences(
             font_size=current_user.font_size,
             font_family=current_user.font_family,
-            page_layout=current_user.page_layout
+            page_layout=current_user.page_layout,
+            recently_read_limit_days=current_user.recently_read_limit_days
         ),
         notification_preferences=schemas.NotificationPreferences(
             notifications_enabled=current_user.notifications_enabled

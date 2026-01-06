@@ -17,6 +17,10 @@ interface FormData {
     publisher: string;
     language: string;
     tags: string;
+    series: string;
+    series_index: string;
+    rating: number;
+    is_read: boolean;
 }
 
 const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
@@ -35,6 +39,10 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
         publisher: '',
         language: '',
         tags: '',
+        series: '',
+        series_index: '',
+        rating: 0,
+        is_read: false,
     });
 
     useEffect(() => {
@@ -49,6 +57,10 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                 publisher: '',
                 language: '',
                 tags: '',
+                series: '',
+                series_index: '',
+                rating: 0,
+                is_read: false,
             });
             setError(null);
         }
@@ -61,8 +73,13 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
         setError(null);
 
         try {
-            const response = await api.get(`/books/${bookId}`);
-            const book = response.data;
+            const [bookRes, progressRes] = await Promise.all([
+                api.get(`/books/${bookId}`),
+                api.get(`/progress/${bookId}`)
+            ]);
+            
+            const book = bookRes.data;
+            const progress = progressRes.data;
 
             setFormData({
                 title: book.title || '',
@@ -71,6 +88,10 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                 publisher: book.publisher || '',
                 language: book.language || '',
                 tags: book.tags?.map((t: any) => t.name).join(', ') || '',
+                series: book.series || '',
+                series_index: book.series_index?.toString() || '',
+                rating: book.rating || 0,
+                is_read: !!progress?.is_finished,
             });
         } catch (err) {
             console.error('Failed to fetch book details:', err);
@@ -91,8 +112,8 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
             // Parse comma-separated lists
             const authorsList = formData.authors
                 .split(',')
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.length > 0);
 
             const tagsList = formData.tags
                 .split(',')
@@ -106,9 +127,19 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                 publisher: formData.publisher,
                 language: formData.language,
                 tags: tagsList,
+                series: formData.series || null,
+                series_index: formData.series_index ? parseInt(formData.series_index) : null,
+                rating: formData.rating,
             };
 
             await api.patch(`/books/${bookId}`, updateData);
+
+            // Update read status if changed (or just always send current)
+            await api.post(`/progress/${bookId}`, {
+                is_finished: formData.is_read ? 1 : 0,
+                percentage: formData.is_read ? 100 : 0
+            });
+
             onSuccess();
             onClose();
         } catch (err) {
@@ -150,7 +181,7 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 p-6 text-left align-middle shadow-xl transition-all border dark:border-slate-800">
+                            <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 p-8 text-left align-middle shadow-2xl transition-all border dark:border-slate-800">
                                 <div className="flex justify-between items-center mb-6">
                                     <Dialog.Title
                                         as="h3"
@@ -178,78 +209,149 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                                             </div>
                                         )}
 
-                                        <div>
-                                            <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                Title
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="title"
-                                                name="title"
-                                                value={formData.title}
-                                                onChange={handleChange}
-                                                className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                required
-                                            />
-                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                        Title
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="title"
+                                                        name="title"
+                                                        value={formData.title}
+                                                        onChange={handleChange}
+                                                        className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        required
+                                                    />
+                                                </div>
 
-                                        <div>
-                                            <label htmlFor="authors" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                Authors (comma separated)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="authors"
-                                                name="authors"
-                                                value={formData.authors}
-                                                onChange={handleChange}
-                                                className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            />
-                                        </div>
+                                                <div>
+                                                    <label htmlFor="authors" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                        Authors (comma separated)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="authors"
+                                                        name="authors"
+                                                        value={formData.authors}
+                                                        onChange={handleChange}
+                                                        className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label htmlFor="publisher" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                    Publisher
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="publisher"
-                                                    name="publisher"
-                                                    value={formData.publisher}
-                                                    onChange={handleChange}
-                                                    className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="publisher" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Publisher
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            id="publisher"
+                                                            name="publisher"
+                                                            value={formData.publisher}
+                                                            onChange={handleChange}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label htmlFor="language" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Language
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            id="language"
+                                                            name="language"
+                                                            value={formData.language}
+                                                            onChange={handleChange}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            <div>
-                                                <label htmlFor="language" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                    Language
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="language"
-                                                    name="language"
-                                                    value={formData.language}
-                                                    onChange={handleChange}
-                                                    className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                />
-                                            </div>
-                                        </div>
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="series" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Series
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            id="series"
+                                                            name="series"
+                                                            value={formData.series}
+                                                            onChange={handleChange}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
 
-                                        <div>
-                                            <label htmlFor="tags" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                Tags (comma separated)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="tags"
-                                                name="tags"
-                                                value={formData.tags}
-                                                onChange={handleChange}
-                                                className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="fiction, history, novel"
-                                            />
+                                                    <div>
+                                                        <label htmlFor="series_index" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Series Index
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            id="series_index"
+                                                            name="series_index"
+                                                            value={formData.series_index}
+                                                            onChange={handleChange}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="rating" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                            Rating (0-5)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            step="0.5"
+                                                            min="0"
+                                                            max="5"
+                                                            id="rating"
+                                                            name="rating"
+                                                            value={formData.rating}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, rating: parseFloat(e.target.value) }))}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-end pb-2">
+                                                        <label className="flex items-center cursor-pointer select-none">
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="sr-only"
+                                                                    checked={formData.is_read}
+                                                                    onChange={(e) => setFormData(prev => ({ ...prev, is_read: e.target.checked }))}
+                                                                />
+                                                                <div className={`block w-10 h-6 rounded-full transition-colors ${formData.is_read ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}></div>
+                                                                <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform ${formData.is_read ? 'translate-x-4' : ''}`}></div>
+                                                            </div>
+                                                            <span className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Mark as Read</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="tags" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                        Tags (comma separated)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        id="tags"
+                                                        name="tags"
+                                                        value={formData.tags}
+                                                        onChange={handleChange}
+                                                        className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        placeholder="fiction, history, novel"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div>
@@ -261,7 +363,7 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
                                                 name="description"
                                                 value={formData.description}
                                                 onChange={handleChange}
-                                                rows={4}
+                                                rows={5}
                                                 className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
                                         </div>
