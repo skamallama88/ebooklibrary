@@ -167,6 +167,7 @@ function App() {
         setCollapsed={setSidebarCollapsed}
         activeFilter={activeFilter}
         onFilterChange={(filter: string) => {
+          // Handle special filters
           if (filter === 'all') {
             setActiveFilter('all');
             setSearchTerm('');
@@ -180,9 +181,29 @@ function App() {
             setActiveFilter(filter);
             setSearchTerm('');
           } else {
-            // Calibre-style tags, author, publisher
-            setSearchTerm(filter);
-            setActiveFilter(filter);
+            // For tag, author, publisher filters from sidebar, convert to search query
+            // Sidebar sends: tags:"=Value", authors:"=Value", publishers:"=Value"
+            let searchQuery = '';
+            
+            if (filter.startsWith('tags:"=')) {
+              // Extract tag name from tags:"=TagName"
+              const tagName = filter.match(/tags:"=(.+?)"/)?.[1];
+              searchQuery = tagName || filter;
+            } else if (filter.startsWith('authors:"=')) {
+              // Extract author name from authors:"=Author Name"  
+              const authorName = filter.match(/authors:"=(.+?)"/)?.[1];
+              searchQuery = authorName || filter;
+            } else if (filter.startsWith('publishers:"=')) {
+              // Extract publisher name from publishers:"=Publisher Name"
+              const publisherName = filter.match(/publishers:"=(.+?)"/)?.[1];
+              searchQuery = publisherName || filter;
+            } else {
+              // Fallback for any other format
+              searchQuery = filter;
+            }
+            
+            setSearchTerm(searchQuery);
+            setActiveFilter('search');
           }
           setPage(0);
         }}

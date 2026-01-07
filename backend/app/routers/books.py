@@ -216,17 +216,34 @@ def update_book(book_id: int, book_update: schemas.BookUpdate, db: Session = Dep
             authors.append(author)
         db_book.authors = authors
 
-    # Handle tags separately
+    # Handle tags separately with usage count tracking
     if "tags" in update_data:
+        # Get old tags to calculate what changed
+        old_tags = set(db_book.tags)
+        
         tags = []
         for tag_name in update_data.pop("tags"):
             tag = db.query(models.Tag).filter(models.Tag.name == tag_name).first()
             if not tag:
-                tag = models.Tag(name=tag_name)
+                tag = models.Tag(name=tag_name, usage_count=0)
                 db.add(tag)
                 db.flush()
             tags.append(tag)
-        db_book.tags = tags
+        
+        new_tags = set(tags)
+        
+        # Calculate added and removed tags
+        added_tags = new_tags - old_tags
+        removed_tags = old_tags - new_tags
+        
+        # Update usage counts
+        for tag in added_tags:
+            tag.usage_count = (tag.usage_count or 0) + 1
+        
+        for tag in removed_tags:
+            tag.usage_count = max(0, (tag.usage_count or 0) - 1)
+        
+        db_book.tags = list(new_tags)
 
     # Update other fields
     for key, value in update_data.items():
