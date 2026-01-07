@@ -4,7 +4,7 @@ Future features to add
 - [ ] Convert between formats (eg .pdf to .epub)
 - [ ] Plugin support?
 - [ ] Duplicate Handling
-- [ ] Word Count
+- [x] Word Count
 - [x] Column to show read
 - [x] Column to show reading progress
 - [x] Add remove coumns per user requirements

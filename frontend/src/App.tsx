@@ -8,6 +8,7 @@ import ImportModal from './components/ImportModal';
 import EditMetadataModal from './components/EditMetadataModal';
 import UserSettingsModal from './components/UserSettingsModal';
 import UserManagementModal from './components/UserManagementModal';
+import TagManagementModal from './components/TagManagementModal';
 import Topbar from './components/Topbar';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import TagSearch from './components/TagSearch';
@@ -30,6 +31,7 @@ function App() {
   const [sorting, setSorting] = useState<any[]>([]);
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
+  const [showTagManagement, setShowTagManagement] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(sidebarCollapsed));
@@ -228,6 +230,7 @@ function App() {
           toggleDarkMode={toggleDarkMode}
           onOpenSettings={() => setShowUserSettings(true)}
           onOpenUserManagement={() => setShowUserManagement(true)}
+          onOpenTagManagement={() => setShowTagManagement(true)}
           onWordCount={handleWordCount}
           onToggleSidebar={() => setMobileDrawerOpen(!mobileDrawerOpen)}
         />
@@ -349,6 +352,14 @@ function App() {
         <UserManagementModal
           isOpen={showUserManagement}
           onClose={() => setShowUserManagement(false)}
+        />
+      )}
+
+      {user?.is_admin && (
+        <TagManagementModal
+          isOpen={showTagManagement}
+          onClose={() => setShowTagManagement(false)}
+          onUpdate={() => refetch()}
         />
       )}
     </div>

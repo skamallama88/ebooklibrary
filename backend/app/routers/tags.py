@@ -11,7 +11,7 @@ Provides endpoints for:
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, or_
+from sqlalchemy import func, desc, or_, text
 from typing import List, Optional
 from .. import models, schemas, database
 from ..routers.auth import get_current_user
@@ -396,6 +396,68 @@ def bulk_tag_books(
         tags_modified=tags_modified,
         errors=errors
     )
+
+
+@router.post("/merge-tags/{source_tag_id}/{target_tag_id}", status_code=200)
+def merge_tags(
+    source_tag_id: int,
+    target_tag_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Merge two tags by moving all books from source tag to target tag.
+    Then delete the source tag.
+    """
+    # Get both tags
+    source_tag = db.query(models.Tag).filter(models.Tag.id == source_tag_id).first()
+    target_tag = db.query(models.Tag).filter(models.Tag.id == target_tag_id).first()
+    
+    if not source_tag:
+        raise HTTPException(status_code=404, detail="Source tag not found")
+    if not target_tag:
+        raise HTTPException(status_code=404, detail="Target tag not found")
+    
+    # Move all book_tags from source to target (avoiding duplicates)
+    # Update book_tags entries to point to target tag
+    db.execute(
+        text("""
+            UPDATE book_tags 
+            SET tag_id = :target_id 
+            WHERE tag_id = :source_id
+            AND book_id NOT IN (
+                SELECT book_id 
+                FROM book_tags 
+                WHERE tag_id = :target_id
+            )
+        """),
+        {"target_id": target_tag_id, "source_id": source_tag_id}
+    )
+    
+    # Delete duplicate book_tags entries (books that already have target tag)
+    db.execute(
+        text("""
+            DELETE FROM book_tags 
+            WHERE tag_id = :source_id
+        """),
+        {"source_id": source_tag_id}
+    )
+    
+    # Recalculate usage count for target tag
+    target_count = db.execute(
+        text("SELECT COUNT(*) FROM book_tags WHERE tag_id = :tag_id"),
+        {"tag_id": target_tag_id}
+    ).scalar()
+    target_tag.usage_count = target_count
+    
+    # Delete source tag
+    db.delete(source_tag)
+    db.commit()
+    
+    return {
+        "message": f"Merged '{source_tag.name}' into '{target_tag.name}'",
+        "target_tag": target_tag
+    }
 
 
 @router.post("/copy-tags/{source_book_id}/{target_book_id}", status_code=200)

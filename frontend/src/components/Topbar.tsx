@@ -27,6 +27,7 @@ interface TopbarProps {
     toggleDarkMode: () => void;
     onOpenSettings: () => void;
     onOpenUserManagement: () => void;
+    onOpenTagManagement: () => void;
     onWordCount?: (ids: number[]) => void;
     onToggleSidebar?: () => void; // For mobile hamburger menu
 }
@@ -43,6 +44,7 @@ const Topbar: React.FC<TopbarProps> = ({
     toggleDarkMode,
     onOpenSettings,
     onOpenUserManagement,
+    onOpenTagManagement,
     onWordCount,
     onToggleSidebar,
 }) => {
@@ -265,6 +267,7 @@ const Topbar: React.FC<TopbarProps> = ({
                 <UserMenu 
                     onOpenSettings={onOpenSettings}
                     onOpenUserManagement={onOpenUserManagement}
+                    onOpenTagManagement={onOpenTagManagement}
                 />
             </div>
         </div>
