@@ -41,7 +41,7 @@ jobs:
           # Fix for older act_runner versions if token parsing fails
           ACTIONS_RUNTIME_TOKEN: ""
 
-          - name: Build and Push
+      - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: ./frontend            # Directory for the frontend files
