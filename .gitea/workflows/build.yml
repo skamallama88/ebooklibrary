@@ -36,6 +36,7 @@ jobs:
           # Note: Gitea requires lowercase image names
           tags: |
             ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:latest
+            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:${{ gitea.sha }}
         env:
           # Fix for older act_runner versions if token parsing fails
           ACTIONS_RUNTIME_TOKEN: ""
@@ -49,7 +50,7 @@ jobs:
           # Note: Gitea requires lowercase image names
           tags: |
             ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:latest
-
+            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:${{ gitea.sha }}
         env:
           # Fix for older act_runner versions if token parsing fails
           ACTIONS_RUNTIME_TOKEN: ""
