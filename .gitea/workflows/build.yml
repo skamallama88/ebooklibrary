@@ -30,7 +30,22 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend             # Directory for the backend files
+          file: ./backend/Dockerfile     # Explicit path to the backend Dockerfile
+          push: true
+          # Note: Gitea requires lowercase image names
+          tags: |
+            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:latest
+            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:${{ gitea.sha }}
+        env:
+          # Fix for older act_runner versions if token parsing fails
+          ACTIONS_RUNTIME_TOKEN: ""
+
+          - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend            # Directory for the frontend files
+          file: ./frontend/Dockerfile
           push: true
           # Note: Gitea requires lowercase image names
           tags: |
