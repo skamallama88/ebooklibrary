@@ -77,9 +77,14 @@ allow_all = os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true"
 
 allowed_origins = [
     "http://localhost:3000",
+    "http://localhost:5173",  # Vite dev server
     "http://localhost:5174",  # Vite dev server
+    "http://localhost:7300",  # Production frontend port
     frontend_url,
 ]
+
+print(f"DEBUG: CORS Allow All: {allow_all}")
+print(f"DEBUG: Allowed Origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,

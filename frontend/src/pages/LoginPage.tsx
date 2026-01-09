@@ -15,11 +15,15 @@ const LoginPage: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            const formData = new FormData();
-            formData.append('username', username);
-            formData.append('password', password);
+            const params = new URLSearchParams();
+            params.append('username', username);
+            params.append('password', password);
 
-            const response = await api.post('/auth/token', formData);
+            const response = await api.post('/auth/token', params, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
             await login(response.data.access_token);
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Login failed');
