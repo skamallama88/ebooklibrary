@@ -43,7 +43,10 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 async def seed_data():
     db = database.SessionLocal()
     try:
-        # Create default admin user if none exists
+        # Check if we should force-reset the admin password
+        reset_admin = os.getenv("RESET_ADMIN_PASSWORD", "false").lower() == "true"
+        
+        # Create or update default admin user
         admin_user = db.query(models.User).filter(models.User.username == "admin").first()
         if not admin_user:
             hashed_password = auth_service.get_password_hash("admin")
@@ -56,7 +59,15 @@ async def seed_data():
             )
             db.add(new_admin)
             db.commit()
-            print("Default admin user created: admin / admin")
+            print("🚀 Default admin user created: admin / admin")
+        elif reset_admin:
+            admin_user.hashed_password = auth_service.get_password_hash("admin")
+            db.commit()
+            print("🔄 Admin password force-reset to 'admin'")
+        else:
+            print("ℹ️ Admin user exists. Use RESET_ADMIN_PASSWORD=true to reset credentials on startup.")
+    except Exception as e:
+        print(f"❌ Error during startup seeding: {e}")
     finally:
         db.close()
 

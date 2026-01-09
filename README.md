@@ -62,8 +62,9 @@ A modern, self-hosted web application for managing and reading ebooks at scale (
 When you first deploy the application:
 
 1.  **Automatic Seeding**: The backend automatically creates a default admin user (`admin`/`admin`) if no users exist in the database.
-2.  **Initial Scan**: You may want to click "Scan Library" in the sidebar to import any books already placed in the `data/books` folder.
-3.  **Security**: Change the default admin password from the "User Settings" menu immediately after logging in.
+2.  **Password Reset**: If you forget your admin password or are having trouble logging in, set the environment variable `RESET_ADMIN_PASSWORD=true` in your `.env` file and restart the backend. This will force-reset the `admin` password back to `admin`.
+3.  **Initial Scan**: You may want to click "Scan Library" in the sidebar to import any books already placed in the `data/books` folder.
+4.  **Security**: Change the default admin password from the "User Settings" menu immediately after logging in.
 
 ### Default Login
 

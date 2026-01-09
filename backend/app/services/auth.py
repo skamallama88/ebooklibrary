@@ -12,7 +12,19 @@ from sqlalchemy.orm import Session
 from .. import schemas, database, models
 
 # Configuration
-SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "your-secret-key-for-dev-only-change-this"))
+# Configuration
+_jwt_secret = os.getenv("JWT_SECRET")
+_secret_key = os.getenv("SECRET_KEY")
+
+# Use JWT_SECRET if present and not empty, otherwise fallback to SECRET_KEY, then default
+SECRET_KEY = (_jwt_secret if _jwt_secret else None) or (_secret_key if _secret_key else None) or "your-secret-key-for-dev-only-change-this"
+
+if SECRET_KEY == "your-secret-key-for-dev-only-change-this":
+    print("⚠️ WARNING: Using default development SECRET_KEY. Please set JWT_SECRET in production!")
+else:
+    source = "JWT_SECRET" if (_jwt_secret if _jwt_secret else None) else "SECRET_KEY"
+    print(f"✅ Authentication service using secret from {source}")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
 
