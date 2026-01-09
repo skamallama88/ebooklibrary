@@ -73,6 +73,8 @@ async def seed_data():
 
 # CORS configuration with environment-based origins
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allow_all = os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true"
+
 allowed_origins = [
     "http://localhost:3000",
     "http://localhost:5174",  # Vite dev server
@@ -81,9 +83,9 @@ allowed_origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"] if allow_all else allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
