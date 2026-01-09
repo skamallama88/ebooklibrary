@@ -24,8 +24,8 @@ services:
       COVER_STORAGE_PATH: /data/covers
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      RESET_ADMIN_PASSWORD: ${RESET_ADMIN_PASSWORD:-false}
     volumes:
-      - /mnt/user/appdata/ebook-library-backend:/app
       - /mnt/user/storage/ebooklib/data/books:/data/books
       - /mnt/user/storage/ebooklib/data/covers:/data/covers
     ports:
@@ -39,9 +39,6 @@ services:
       - backend
     ports:
       - "7300:80"
-    volumes:
-      - /mnt/user/appdata/ebook-library-frontend:/app
-      - /app/node_modules
 
 volumes:
   db-data:
