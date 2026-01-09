@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 from datetime import datetime
 
 # Tag schemas
@@ -270,3 +270,101 @@ class AutoTagResult(BaseModel):
     books_affected: int
     tags_added: int
 
+# AI Provider schemas
+class AIProviderConfigBase(BaseModel):
+    provider_type: str  # ollama, openai, anthropic
+    api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    model_name: str
+    max_tokens: int = 2048
+    temperature: float = 0.7
+    extraction_strategy: str = "smart_sampling"
+
+class AIProviderConfigCreate(AIProviderConfigBase):
+    pass
+
+class AIProviderConfig(AIProviderConfigBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class OllamaModelInfo(BaseModel):
+    """Model information from Ollama"""
+    name: str
+    size: Optional[int] = None
+    modified_at: Optional[str] = None
+
+class OllamaModelList(BaseModel):
+    """List of available Ollama models"""
+    models: List[OllamaModelInfo]
+
+# AI Summary schemas
+class AISummaryRequest(BaseModel):
+    book_id: int
+    overwrite_existing: bool = False
+    auto_approve: bool = False
+    extraction_strategy: Optional[str] = None
+
+class AISummaryResponse(BaseModel):
+    book_id: int
+    summary: str
+    original_summary: str
+    confidence: float
+    preview_mode: bool
+    strategy_used: str
+
+# AI Tag schemas
+class SuggestedTag(BaseModel):
+    """A single suggested tag from AI"""
+    name: str
+    type: str
+    confidence: float
+    reason: str
+
+class AITagRequest(BaseModel):
+    book_id: int
+    max_tags: int = 20
+    per_type_limits: Optional[Dict[str, int]] = None
+    merge_existing: bool = True
+    auto_approve: bool = False
+    tag_priorities: Optional[List[Tuple[str, int]]] = None
+
+class AITagResponse(BaseModel):
+    book_id: int
+    suggested_tags: List[SuggestedTag]
+    existing_tags: List[str]
+    applied_limits: Dict[str, int]
+
+# AI Batch operation schemas
+class AIBatchRequest(BaseModel):
+    book_ids: List[int]
+    operation: str  # "summary", "tags", "both"
+    common_settings: Dict = {}
+
+class AIBatchProgress(BaseModel):
+    total: int
+    completed: int
+    failed: int
+    current_book_id: Optional[int] = None
+    errors: List[str] = []
+
+# Tag Priority schemas
+class TagPriorityConfigBase(BaseModel):
+    tag_type: str
+    priority: int
+    max_tags: int = 10
+
+class TagPriorityConfigCreate(TagPriorityConfigBase):
+    user_id: Optional[int] = None
+
+class TagPriorityConfig(TagPriorityConfigBase):
+    id: int
+    user_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class TagPriorityConfigUpdate(BaseModel):
+    priorities: List[TagPriorityConfigBase]

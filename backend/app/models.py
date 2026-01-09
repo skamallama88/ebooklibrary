@@ -139,3 +139,27 @@ class Bookmark(Base):
     
     user = relationship("User", back_populates="bookmarks")
     book = relationship("Book", back_populates="bookmarks")
+
+class AIProviderConfig(Base):
+    __tablename__ = "ai_provider_config"
+    id = Column(Integer, primary_key=True, index=True)
+    provider_type = Column(String, nullable=False)  # ollama, openai, anthropic
+    api_key = Column(String, nullable=True)  # Encrypted, optional for Ollama
+    base_url = Column(String, nullable=True)  # For Ollama - user can input custom IP/URL
+    model_name = Column(String, nullable=False)  # Selected from available models
+    is_active = Column(Boolean, default=False)  # Only one provider can be active
+    max_tokens = Column(Integer, default=2048)
+    temperature = Column(Float, default=0.7)
+    extraction_strategy = Column(String, default="smart_sampling")  # full, smart_sampling, rolling_summary, metadata_only
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class TagPriorityConfig(Base):
+    __tablename__ = "tag_priority_config"
+    id = Column(Integer, primary_key=True, index=True)
+    tag_type = Column(String, nullable=False, index=True)  # genre, theme, tone, setting, etc.
+    priority = Column(Integer, nullable=False)  # Lower number = higher priority
+    max_tags = Column(Integer, default=10)  # Per-type limit
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for global defaults
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
