@@ -57,6 +57,14 @@ A modern, self-hosted web application for managing and reading ebooks at scale (
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
 
+### First-Time Setup
+
+When you first deploy the application:
+
+1.  **Automatic Seeding**: The backend automatically creates a default admin user (`admin`/`admin`) if no users exist in the database.
+2.  **Initial Scan**: You may want to click "Scan Library" in the sidebar to import any books already placed in the `data/books` folder.
+3.  **Security**: Change the default admin password from the "User Settings" menu immediately after logging in.
+
 ### Default Login
 
 - **Username**: `admin`

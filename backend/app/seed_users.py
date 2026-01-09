@@ -25,7 +25,7 @@ def seed_users(db: Session):
     # Create admin user
     admin_user = db.query(models.User).filter(models.User.username == "admin").first()
     if not admin_user:
-        hashed_password = auth_service.get_password_hash("admin123")
+        hashed_password = auth_service.get_password_hash("admin")
         admin_user = models.User(
             username="admin",
             email="admin@example.com",
@@ -39,7 +39,7 @@ def seed_users(db: Session):
             notifications_enabled=True
         )
         db.add(admin_user)
-        print("✓ Created admin user: username='admin', password='admin123'")
+        print("✓ Created admin user: username='admin', password='admin'")
     else:
         print("ℹ Admin user already exists")
     

@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from .. import schemas, database, models
 
 # Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-for-dev-only-change-this")
+SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "your-secret-key-for-dev-only-change-this"))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
 

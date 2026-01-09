@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ebook-library-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ebookuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ebookpass}
+      POSTGRES_DB: ${POSTGRES_DB:-ebooklibrary}
+    volumes:
+      - /mnt/user/appdata/ebook-library-db:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  backend:
+    image: 10.0.0.142:3808/admin/ebook-library-backend
+    container_name: ebook-library-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-ebookuser}:${POSTGRES_PASSWORD:-ebookpass}@db:5432/${POSTGRES_DB:-ebooklibrary}
+      BOOK_STORAGE_PATH: /data/books
+      COVER_STORAGE_PATH: /data/covers
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    volumes:
+      - /mnt/user/appdata/ebook-library-backend:/app
+      - /mnt/user/storage/ebooklib/data/books:/data/books
+      - /mnt/user/storage/ebooklib/data/covers:/data/covers
+    ports:
+      - "7800:8000"
+
+  frontend:
+    image: 10.0.0.142:3808/admin/ebook-library-frontend
+    container_name: ebook-library-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "7300:80"
+    volumes:
+      - /mnt/user/appdata/ebook-library-frontend:/app
+      - /app/node_modules
+
+volumes:
+  db-data:
