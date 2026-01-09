@@ -195,6 +195,14 @@ ebook-library/
 - Verify files have `.epub` or `.pdf` extensions
 - Check backend logs: `docker-compose logs backend`
 
+### Troubleshooting Login Issues
+
+If you cannot login after a new deployment:
+1.  **Rebuild Images**: Ensure you have pulled the latest code and rebuilt your Docker images (`docker-compose build --no-cache`).
+2.  **Reset Password**: Set `RESET_ADMIN_PASSWORD=true` in your `.env` and restart the backend once.
+3.  **CORS/Connectivity**: If you see CORS errors in the browser console, try setting `ALLOW_ALL_ORIGINS=true` in your `.env` (for troubleshooting only).
+4.  **Reverse Proxy**: The frontend now uses an internal Nginx proxy to route `/api` requests to the backend. This requires the backend container to be reachable via the hostname `ebook-library-backend`.
+
 ## Contributing
 
 Contributions welcome! Please open an issue or submit a pull request.
