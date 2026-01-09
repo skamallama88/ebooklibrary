@@ -126,7 +126,7 @@ class AIService:
             summary=response.text.strip(),
             original_summary=book.description or "",
             confidence=response.confidence,
-            strategy_used=extracted.strategy_used.value,
+            strategy_used=extracted.strategy_used,
             word_count=extracted.word_count
         )
     
@@ -344,8 +344,9 @@ Your tags:"""
                 
                 # Parse type:name
                 if ':' in tag_part:
-                    tag_type, tag_name = tag_part.split(':', 1)
-                    tag_type = tag_type.strip()
+                    import re
+                    # Strip leading numbers and dots (e.g. "1. Genre" -> "Genre")
+                    tag_type = re.sub(r'^\d+\.\s*', '', tag_type).strip().lower()
                     tag_name = tag_name.strip()
                 else:
                     # Default to meta if no type specified

@@ -5,7 +5,7 @@ Handles provider management, summary generation, tag generation, and batch opera
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from ..database import get_db
 from ..models import User, Book, Tag, AIProviderConfig, TagPriorityConfig
@@ -536,6 +536,10 @@ async def _apply_tags_to_book(
     
     # Clear existing tags if not merging
     if not merge_existing:
+        # Decrement usage count for tags being removed
+        for tag in book.tags:
+            if tag.usage_count > 0:
+                tag.usage_count -= 1
         book.tags.clear()
     
     # Apply each suggested tag
@@ -558,5 +562,7 @@ async def _apply_tags_to_book(
         # Add to book if not already there
         if tag not in book.tags:
             book.tags.append(tag)
+            tag.usage_count = (tag.usage_count or 0) + 1
+            db.add(tag) # Explicitly mark as modified
     
     db.commit()

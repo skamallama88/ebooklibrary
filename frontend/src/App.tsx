@@ -12,6 +12,9 @@ import TagManagementModal from './components/TagManagementModal';
 import Topbar from './components/Topbar';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import TagSearch from './components/TagSearch';
+import AIProviderModal from './components/AIProviderModal';
+import AISummaryModal from './components/AISummaryModal';
+import AITagModal from './components/AITagModal';
 import api from './api';
 import { useAuth } from './AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -32,6 +35,11 @@ function App() {
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showTagManagement, setShowTagManagement] = useState(false);
+  
+  // AI Modal States
+  const [showAIProviderModal, setShowAIProviderModal] = useState(false);
+  const [showAISummaryModal, setShowAISummaryModal] = useState(false);
+  const [showAITagModal, setShowAITagModal] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(sidebarCollapsed));
@@ -233,6 +241,11 @@ function App() {
           onOpenTagManagement={() => setShowTagManagement(true)}
           onWordCount={handleWordCount}
           onToggleSidebar={() => setMobileDrawerOpen(!mobileDrawerOpen)}
+          
+          // AI Handlers
+          onOpenAIProvider={() => setShowAIProviderModal(true)}
+          onOpenAISummary={() => setShowAISummaryModal(true)}
+          onOpenAITags={() => setShowAITagModal(true)}
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">
@@ -362,6 +375,30 @@ function App() {
           onUpdate={() => refetch()}
         />
       )}
+
+      {/* AI Modals */}
+      <AIProviderModal
+        isOpen={showAIProviderModal}
+        onClose={() => setShowAIProviderModal(false)}
+      />
+
+      <AISummaryModal
+        isOpen={showAISummaryModal}
+        onClose={() => setShowAISummaryModal(false)}
+        bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
+        bookTitle={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.title || ''}
+        currentSummary={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.description || ''}
+        onSuccess={() => refetch()}
+      />
+
+      <AITagModal
+        isOpen={showAITagModal}
+        onClose={() => setShowAITagModal(false)}
+        bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
+        bookTitle={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.title || ''}
+        currentTags={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.tags?.map((t: any) => t.name) || []}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

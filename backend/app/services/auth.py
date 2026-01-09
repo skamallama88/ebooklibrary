@@ -85,3 +85,5 @@ async def get_current_admin_user(current_user: models.User = Depends(get_current
             detail="Not authorized to perform this action"
         )
     return current_user
+
+require_admin = get_current_admin_user

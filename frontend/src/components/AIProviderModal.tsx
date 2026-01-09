@@ -35,7 +35,7 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
     const [testResults, setTestResults] = useState<Record<number, { status: string; message: string }>>({});
     
     const [formData, setFormData] = useState({
-        base_url: 'http://localhost:11434',
+        base_url: 'http://host.docker.internal:11434',
         model_name: '',
         max_tokens: 2048,
         temperature: 0.7,
@@ -97,9 +97,9 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
             
             await fetchProviders();
             
-            // Reset form
+            // Reset form but keep the Docker-friendly URL
             setFormData({
-                base_url:'http://localhost:11434',
+                base_url: 'http://host.docker.internal:11434',
                 model_name: '',
                 max_tokens: 2048,
                 temperature: 0.7,
@@ -195,15 +195,20 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
                                     <form onSubmit={handleAddProvider} className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                    Base URL
-                                                </label>
+                                                <div className="flex justify-between mb-1">
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                        Base URL
+                                                    </label>
+                                                    <span className="text-xs text-slate-500 dark:text-slate-400" title="Use host.docker.internal to connect to host machine">
+                                                        Docker: host.docker.internal
+                                                    </span>
+                                                </div>
                                                 <input
                                                     type="text"
                                                     value={formData.base_url}
                                                     onChange={(e) => setFormData(prev => ({ ...prev, base_url: e.target.value }))}
                                                     className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
-                                                    placeholder="http://localhost:11434"
+                                                    placeholder="http://host.docker.internal:11434"
                                                     required
                                                 />
                                             </div>
