@@ -30,7 +30,7 @@ jobs:
       - name: Login to Gitea Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ steps.prep.outputs.registry }}
+          registry: 10.0.0.142:3808
           username: ${{ gitea.actor }}
           password: ${{ secrets.REGISTRY_TOKEN }}
 
@@ -42,8 +42,8 @@ jobs:
           push: true
           # Note: Gitea requires lowercase image names
           tags: |
-            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:latest
-            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:${{ gitea.sha }}
+            10.0.0.142:3808/admin/ebook-library-frontend:latest
+            10.0.0.142:3808/admin/ebook-library-frontend:${{ gitea.sha }}
         env:
           # Fix for older act_runner versions if token parsing fails
           ACTIONS_RUNTIME_TOKEN: ""
@@ -56,8 +56,8 @@ jobs:
           push: true
           # Note: Gitea requires lowercase image names
           tags: |
-            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:latest
-            ${{ steps.prep.outputs.registry }}/${{ steps.prep.outputs.repo }}:${{ gitea.sha }}
+            10.0.0.142:3808/admin/ebook-library-backend:latest
+            10.0.0.142:3808/admin/ebook-library-backend:${{ gitea.sha }}
         env:
           # Fix for older act_runner versions if token parsing fails
           ACTIONS_RUNTIME_TOKEN: ""
