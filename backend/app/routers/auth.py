@@ -5,6 +5,9 @@ from datetime import timedelta
 from .. import schemas, database, models
 from ..services import auth as auth_service
 from ..middleware import limiter
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -35,11 +38,11 @@ async def login_for_access_token(
     db: Session = Depends(database.get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    print(f"DEBUG: Login attempt for user: {form_data.username}")
+    logger.debug(f"Login attempt for user: {form_data.username}")
     user = db.query(models.User).filter(models.User.username == form_data.username).first()
     
     if not user:
-        print(f"DEBUG: User not found: {form_data.username}")
+        logger.warning(f"Login attempt for non-existent user: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -48,14 +51,14 @@ async def login_for_access_token(
     
     is_verified = auth_service.verify_password(form_data.password, user.hashed_password)
     if not is_verified:
-        print(f"DEBUG: Password verification failed for user: {form_data.username}")
+        logger.warning(f"Failed login attempt for user: {form_data.username} (invalid password)")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    print(f"DEBUG: Login successful for user: {form_data.username}")
+    logger.info(f"Successful login for user: {form_data.username}")
     access_token = auth_service.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 

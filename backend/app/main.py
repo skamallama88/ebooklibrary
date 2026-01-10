@@ -6,8 +6,14 @@ from . import models, database
 from .services import auth as auth_service
 from .routers import books, auth, collections, tags, progress, bookmarks, utilities, users, ai, ai_templates
 from .middleware import limiter, rate_limit_exceeded_handler
+from .logging_config import setup_logging, get_logger
 from sqlalchemy.orm import Session
 import os
+
+# Setup logging
+log_level = os.getenv("LOG_LEVEL", "INFO")
+setup_logging(log_level)
+logger = get_logger(__name__)
 
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
@@ -38,15 +44,15 @@ async def seed_data():
             )
             db.add(new_admin)
             db.commit()
-            print("🚀 Default admin user created: admin / admin")
+            logger.info("Default admin user created successfully (username: admin, password: admin)")
         elif reset_admin:
             admin_user.hashed_password = auth_service.get_password_hash("admin")
             db.commit()
-            print("🔄 Admin password force-reset to 'admin'")
+            logger.info("Admin password reset to default 'admin'")
         else:
-            print("ℹ️ Admin user exists. Use RESET_ADMIN_PASSWORD=true to reset credentials on startup.")
+            logger.info("Admin user already exists. Set RESET_ADMIN_PASSWORD=true to reset credentials.")
     except Exception as e:
-        print(f"❌ Error during startup seeding: {e}")
+        logger.error(f"Error during startup seeding: {e}", exc_info=True)
     finally:
         db.close()
 
@@ -62,8 +68,8 @@ allowed_origins = [
     frontend_url,
 ]
 
-print(f"DEBUG: CORS Allow All: {allow_all}")
-print(f"DEBUG: Allowed Origins: {allowed_origins}")
+logger.debug(f"CORS configuration - Allow all origins: {allow_all}")
+logger.debug(f"CORS configuration - Allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,

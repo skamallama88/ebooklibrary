@@ -1,7 +1,8 @@
+```python
 import os
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
+from jose import JWTError, jwt
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from pwdlib.hashers.bcrypt import BcryptHasher
@@ -10,6 +11,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .. import schemas, database, models
+from ..logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Configuration
 # Configuration
@@ -20,10 +24,11 @@ _secret_key = os.getenv("SECRET_KEY")
 SECRET_KEY = (_jwt_secret if _jwt_secret else None) or (_secret_key if _secret_key else None) or "your-secret-key-for-dev-only-change-this"
 
 if SECRET_KEY == "your-secret-key-for-dev-only-change-this":
-    print("⚠️ WARNING: Using default development SECRET_KEY. Please set JWT_SECRET in production!")
+    logger.warning("Using default development SECRET_KEY. Set JWT_SECRET environment variable in production!")
+    source = "default (INSECURE)"
 else:
     source = "JWT_SECRET" if (_jwt_secret if _jwt_secret else None) else "SECRET_KEY"
-    print(f"✅ Authentication service using secret from {source}")
+    logger.info(f"JWT authentication configured successfully using {source}")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 hours
