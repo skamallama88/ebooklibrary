@@ -10,7 +10,7 @@ Provides endpoints for:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, desc, or_, text
 from typing import List, Optional
 from .. import models, schemas, database
@@ -54,13 +54,15 @@ def autocomplete_tags(
     
     # Filter by name if we have a search query
     if search_query:
-        query = query.filter(models.Tag.name.ilike(f"%{search_query}%"))
+        # Prefix match is much faster with indexes than contains match
+        query = query.filter(models.Tag.name.ilike(f"{search_query}%"))
     
     # Filter by type
     if tag_type:
         query = query.filter(models.Tag.type == tag_type)
     
     # Order by usage count (most popular first), then alphabetically
+    # Limit results to improve performance
     tags = query.order_by(
         desc(models.Tag.usage_count),
         models.Tag.name
@@ -97,7 +99,7 @@ def get_tag_detail(tag_id: int, db: Session = Depends(database.get_db)):
     """
     Get detailed information about a tag including aliases and related tags.
     """
-    tag = db.query(models.Tag).filter(models.Tag.id == tag_id).first()
+    tag = db.query(models.Tag).options(selectinload(models.Tag.aliases)).filter(models.Tag.id == tag_id).first()
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     

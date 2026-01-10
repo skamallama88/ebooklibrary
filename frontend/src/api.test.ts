@@ -1,12 +1,24 @@
 /**
  * API utility tests
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import axios from 'axios'
 import { login, getBooks } from './api'
 
 // Mock axios
-vi.mock('axios')
+// Mock axios
+vi.mock('axios', () => {
+  const mockAxios = {
+    create: vi.fn(() => mockAxios),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() }
+    },
+    post: vi.fn(),
+    get: vi.fn(),
+  };
+  return { default: mockAxios };
+})
 
 describe('API Utils', () => {
   beforeEach(() => {

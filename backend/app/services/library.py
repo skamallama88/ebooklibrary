@@ -9,7 +9,7 @@ BOOK_STORAGE_PATH = os.getenv("BOOK_STORAGE_PATH", "/data/books")
 def scan_library(db: Session):
     for root, dirs, files in os.walk(BOOK_STORAGE_PATH):
         for file in files:
-            if file.lower().endswith(('.epub', '.pdf')):
+            if file.lower().endswith(('.epub', '.pdf', '.mobi', '.txt', '.rtf')):
                 file_path = os.path.join(root, file)
                 import_book(db, file_path)
 

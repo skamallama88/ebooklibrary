@@ -20,12 +20,17 @@ fake = Faker()
 @pytest.fixture(scope="function")
 def test_db():
     """
-    Create a fresh in-memory SQLite database for each test.
-    Fast and isolated.
+    Create a fresh SQLite database in a temporary file for each test.
+    Isolated and more robust for testing than :memory: in some cases.
     """
-    # Create in-memory database
+    import tempfile
+    import os
+    
+    db_fd, db_path = tempfile.mkstemp()
+    
+    # Create engine pointing to the temp file
     engine = create_engine(
-        "sqlite:///:memory:",
+        f"sqlite:///{db_path}",
         connect_args={"check_same_thread": False}
     )
     
@@ -41,6 +46,9 @@ def test_db():
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+        os.close(db_fd)
+        if os.path.exists(db_path):
+            os.remove(db_path)
 
 
 @pytest.fixture
@@ -123,12 +131,11 @@ def test_book(test_db, test_user):
     """
     book = models.Book(
         title="Test Book",
-        author="Test Author",
         file_path="/test/path/book.epub",
         file_size=1024000,
-        format="epub",
-        uploaded_by=test_user.id
+        format="epub"
     )
+    # The uploaded_by field doesn't exist in Book model, it's not needed for this test fixture
     test_db.add(book)
     test_db.commit()
     test_db.refresh(book)
@@ -142,7 +149,7 @@ def test_tag(test_db):
     """
     tag = models.Tag(
         name="test_tag",
-        tag_type="genre"
+        type="genre"
     )
     test_db.add(tag)
     test_db.commit()

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, UploadFile, File
 from fastapi.responses import FileResponse
 import shutil
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 import os
@@ -33,14 +33,17 @@ def get_books(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    query = db.query(models.Book)
+    query = db.query(models.Book).options(
+        joinedload(models.Book.authors),
+        joinedload(models.Book.tags)
+    )
     
     # Handle new booru-style tag expression search
     if search:
-        # Try to parse as tag expression first
         try:
-            # Check if search looks like a tag expression (contains operators or type:tag syntax)
-            is_tag_expression = any(op in search for op in [' OR ', '-', ':']) or not ' ' in search
+            # Determine if this is a tag expression or a simple title search
+            # A tag expression usually contains operators like OR, -, or type:tag
+            is_tag_expression = any(op in search for op in [' OR ', '-', ':'])
             
             if is_tag_expression:
                 # Use tag expression parser
@@ -167,6 +170,27 @@ def bulk_delete_books(
     db.commit()
     return None
 
+@router.delete("/{book_id}", status_code=204)
+def delete_book(
+    book_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Delete cover if exists
+    if book.cover_path:
+        cover_storage = os.getenv("COVER_STORAGE_PATH", "/data/covers")
+        full_path = os.path.join(cover_storage, book.cover_path)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+    
+    db.delete(book)
+    db.commit()
+    return None
+
 @router.get("/tags", response_model=List[schemas.Tag])
 def get_tags(db: Session = Depends(database.get_db)):
     return db.query(models.Tag).all()
@@ -270,6 +294,20 @@ def update_book(book_id: int, book_update: schemas.BookUpdate, db: Session = Dep
     db.refresh(db_book)
     return db_book
 
+@router.get("/{book_id}/text")
+def get_book_text(book_id: int, db: Session = Depends(database.get_db)):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    from ..services.text_extractor import TextExtractor, ExtractionStrategy
+    try:
+        extractor = TextExtractor()
+        content = extractor.extract_text(book.file_path, strategy=ExtractionStrategy.FULL)
+        return {"text": content.text, "format": book.format}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error extracting text: {str(e)}")
+
 @router.get("/{book_id}/file")
 def get_book_file(book_id: int, db: Session = Depends(database.get_db)):
     book = db.query(models.Book).filter(models.Book.id == book_id).first()
@@ -279,9 +317,17 @@ def get_book_file(book_id: int, db: Session = Depends(database.get_db)):
     if not os.path.exists(book.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
         
+    media_types = {
+        "EPUB": "application/epub+zip",
+        "PDF": "application/pdf",
+        "MOBI": "application/x-mobipocket-ebook",
+        "TXT": "text/plain",
+        "RTF": "application/rtf"
+    }
+    
     return FileResponse(
         book.file_path, 
-        media_type="application/epub+zip" if book.format == "EPUB" else "application/pdf",
+        media_type=media_types.get(book.format, "application/octet-stream"),
         filename=os.path.basename(book.file_path)
     )
 
@@ -308,8 +354,8 @@ async def upload_book(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    if not file.filename.lower().endswith(('.epub', '.pdf')):
-        raise HTTPException(status_code=400, detail="Only EPUB and PDF files are supported")
+    if not file.filename.lower().endswith(('.epub', '.pdf', '.mobi', '.txt', '.rtf')):
+        raise HTTPException(status_code=400, detail="Unsupported file format. Supported formats: EPUB, PDF, MOBI, TXT, RTF")
     
     storage_path = os.getenv("BOOK_STORAGE_PATH", "/data/books")
     os.makedirs(storage_path, exist_ok=True)

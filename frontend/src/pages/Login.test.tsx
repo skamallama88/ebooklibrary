@@ -1,51 +1,60 @@
-/**
- * Tests for the Login component
- */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '../test/utils'
 import userEvent from '@testing-library/user-event'
-import Login from './Login'
+import LoginPage from './LoginPage'
+import * as AuthContext from '../AuthContext'
+import api from '../api'
 
-describe('Login Component', () => {
-  it('renders login form', () => {
-    render(<Login />)
-    
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument()
-  })
+// Mock useAuth
+vi.mock('../AuthContext', () => ({
+  useAuth: vi.fn(),
+}))
 
-  it('shows validation errors for empty fields', async () => {
-    const user = userEvent.setup()
-    render(<Login />)
-    
-    const submitButton = screen.getByRole('button', { name: /log in/i })
-    await user.click(submitButton)
-    
-    // Should show validation errors
-    await waitFor(() => {
-      expect(screen.getByText(/username is required/i)).toBeInTheDocument()
+// Mock api
+vi.mock('../api', () => ({
+  default: {
+    post: vi.fn(),
+  },
+}))
+
+describe('LoginPage Component', () => {
+  const mockLogin = vi.fn()
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: null,
+      token: null,
+      login: mockLogin,
+      logout: vi.fn(),
+      isLoading: false,
     })
   })
 
-  it('calls login API with correct credentials', async () => {
-    const user = userEvent.setup()
-    const mockLogin = vi.fn()
+  it('renders login form', () => {
+    render(<LoginPage />)
     
-    render(<Login onLogin={mockLogin} />)
+    expect(screen.getByPlaceholderText(/enter your username/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/••••••••/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+  })
+
+  it('calls login API and context login with correct credentials', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.post).mockResolvedValue({ data: { access_token: 'test-token' } })
+    
+    render(<LoginPage />)
     
     // Fill in the form
-    await user.type(screen.getByLabelText(/username/i), 'testuser')
-    await user.type(screen.getByLabelText(/password/i), 'password123')
+    await user.type(screen.getByPlaceholderText(/enter your username/i), 'testuser')
+    await user.type(screen.getByPlaceholderText(/••••••••/), 'password123')
     
     // Submit
-    await user.click(screen.getByRole('button', { name: /log in/i }))
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
     
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith({
-        username: 'testuser',
-        password: 'password123'
-      })
+      expect(api.post).toHaveBeenCalledWith('/auth/token', expect.any(URLSearchParams), expect.any(Object))
+      expect(mockLogin).toHaveBeenCalledWith('test-token')
     })
   })
 
@@ -53,13 +62,15 @@ describe('Login Component', () => {
     const user = userEvent.setup()
     
     // Mock a failed API call
-    const mockLogin = vi.fn().mockRejectedValue(new Error('Invalid credentials'))
+    vi.mocked(api.post).mockRejectedValue({
+      response: { data: { detail: 'Invalid credentials' } }
+    })
     
-    render(<Login onLogin={mockLogin} />)
+    render(<LoginPage />)
     
-    await user.type(screen.getByLabelText(/username/i), 'wronguser')
-    await user.type(screen.getByLabelText(/password/i), 'wrongpass')
-    await user.click(screen.getByRole('button', { name: /log in/i }))
+    await user.type(screen.getByPlaceholderText(/enter your username/i), 'wronguser')
+    await user.type(screen.getByPlaceholderText(/••••••••/), 'wrongpass')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
     
     await waitFor(() => {
       expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()

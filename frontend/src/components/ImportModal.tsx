@@ -35,7 +35,10 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
         // Filter for allowed types just in case (EPUB and PDF)
         const filteredFiles = newFiles.filter(file => 
             file.name.toLowerCase().endsWith('.epub') || 
-            file.name.toLowerCase().endsWith('.pdf')
+            file.name.toLowerCase().endsWith('.pdf') ||
+            file.name.toLowerCase().endsWith('.mobi') ||
+            file.name.toLowerCase().endsWith('.txt') ||
+            file.name.toLowerCase().endsWith('.rtf')
         );
         setFiles(prev => {
             // Avoid duplicate files by name if necessary, 
@@ -129,7 +132,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                 <div className="p-6 border-b dark:border-slate-800 flex items-center justify-between">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Import Books</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Upload EPUB or PDF files to your library</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Upload EPUB, PDF, MOBI, TXT or RTF files</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500">
                         <XMarkIcon className="w-6 h-6" />
@@ -159,13 +162,13 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                             {isDragging ? "Drop your files here" : "Click or drag files here to select"}
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500">Supports EPUB and PDF</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">Supports EPUB, PDF, MOBI, TXT, RTF</p>
                         <input
                             type="file"
                             ref={fileInputRef}
                             className="hidden"
                             multiple
-                            accept=".epub,.pdf"
+                            accept=".epub,.pdf,.mobi,.txt,.rtf"
                             onChange={handleFileSelect}
                         />
                     </div>

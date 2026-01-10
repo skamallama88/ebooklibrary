@@ -36,8 +36,9 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const [title, setTitle] = useState('');
     const [location, setLocation] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [format, setFormat] = useState<'epub' | 'pdf' | null>(null);
+    const [format, setFormat] = useState<'epub' | 'pdf' | 'txt' | 'rtf' | 'mobi' | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+    const [textContent, setTextContent] = useState<string>('');
     const [numPages, setNumPages] = useState<number>(0);
     const [pageNumber, setPageNumber] = useState(1);
     const [scale, setScale] = useState(1.0);
@@ -156,9 +157,18 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
 
                 const bookFormat = metaRes.data.format?.toLowerCase() || 'epub';
                 if (isMounted && format !== bookFormat) {
-                    setFormat(bookFormat as 'epub' | 'pdf');
+                    setFormat(bookFormat as 'epub' | 'pdf' | 'txt' | 'rtf' | 'mobi');
                 }
                 setTitle(metaRes.data.title);
+
+                if (['txt', 'rtf', 'mobi'].includes(bookFormat)) {
+                    const textRes = await api.get(`/books/${bookId}/text`);
+                    if (isMounted) {
+                        setTextContent(textRes.data.text);
+                        setIsLoading(false);
+                    }
+                    return;
+                }
 
                 // Fetch the book file as a blob
                 const response = await api.get(`/books/${bookId}/file`, {
@@ -394,7 +404,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 }
                 return prevPage;
             });
-        } else {
+        } else if (format === 'epub') {
             renditionRef.current?.next();
         }
     }, [format, numPages, bookId]);
@@ -412,7 +422,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 }
                 return prevPage;
             });
-        } else {
+        } else if (format === 'epub') {
             renditionRef.current?.prev();
         }
     }, [format, numPages, bookId]);
@@ -925,6 +935,17 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                                 renderTextLayer={true}
                             />
                         </Document>
+                    </div>
+                ) : ['txt', 'rtf', 'mobi'].includes(format || '') ? (
+                    <div className={clsx("w-full h-full overflow-y-auto p-8 md:p-12 leading-relaxed whitespace-pre-wrap transition-all duration-300 mx-auto",
+                        flowMode === 'scrolled' ? "max-w-4xl" : "max-w-2xl",
+                        readerBg)}
+                        style={{
+                            fontSize: `${fontSize}%`,
+                            fontFamily: fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, -apple-system, sans-serif'
+                        }}
+                    >
+                        {textContent}
                     </div>
                 ) : (
                     <div className={clsx("w-full h-full shadow-2xl transition-all duration-300 origin-center mx-auto",

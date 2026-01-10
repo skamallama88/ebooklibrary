@@ -11,11 +11,9 @@ def test_create_book(test_db, test_user):
     """Test creating a book in database"""
     book = models.Book(
         title="Test Book",
-        author="Test Author",
         file_path="/test/path.epub",
         file_size=1024000,
-        format="epub",
-        uploaded_by=test_user.id
+        format="epub"
     )
     
     test_db.add(book)
@@ -24,7 +22,6 @@ def test_create_book(test_db, test_user):
     
     assert book.id is not None
     assert book.title == "Test Book"
-    assert book.author == "Test Author"
 
 
 @pytest.mark.integration
@@ -62,10 +59,10 @@ def test_update_book(client, auth_headers, test_book):
     """Test updating book metadata"""
     update_data = {
         "title": "Updated Title",
-        "author": "Updated Author"
+        "publisher": "Updated Publisher"
     }
     
-    response = client.put(
+    response = client.patch(
         f"/books/{test_book.id}",
         json=update_data,
         headers=auth_headers
@@ -74,7 +71,6 @@ def test_update_book(client, auth_headers, test_book):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["title"] == "Updated Title"
-    assert data["author"] == "Updated Author"
 
 
 @pytest.mark.integration
@@ -98,22 +94,18 @@ def test_search_books_by_title(client, auth_headers, test_db, test_user):
     books = [
         models.Book(
             title="Python Programming",
-            author="Author 1",
             file_path=f"/test/book{i}.epub",
             file_size=1024000,
-            format="epub",
-            uploaded_by=test_user.id
+            format="epub"
         )
         for i in range(3)
     ]
     books.append(
         models.Book(
             title="JavaScript Guide",
-            author="Author 2",
             file_path="/test/js.epub",
             file_size=1024000,
-            format="epub",
-            uploaded_by=test_user.id
+            format="epub"
         )
     )
     

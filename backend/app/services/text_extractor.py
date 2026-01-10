@@ -11,6 +11,10 @@ from pydantic import BaseModel
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
+from striprtf.striprtf import rtf_to_text
+import mobi
+import tempfile
+import shutil
 
 
 class ExtractionStrategy(str, Enum):
@@ -66,8 +70,13 @@ class TextExtractor:
         
         if ext == ".epub":
             return self._extract_epub(file_path, strategy, max_words)
+        elif ext == ".mobi":
+            return self._extract_mobi(file_path, strategy, max_words)
+        elif ext == ".rtf":
+            return self._extract_rtf(file_path, strategy, max_words)
+        elif ext == ".txt":
+            return self._extract_txt(file_path, strategy, max_words)
         else:
-            # Placeholder for future formats
             raise ValueError(f"Unsupported file format: {ext}")
     
     def _extract_epub(
@@ -125,6 +134,139 @@ class TextExtractor:
             
         except Exception as e:
             raise RuntimeError(f"Error extracting text from EPUB: {str(e)}")
+
+    def _extract_mobi(
+        self,
+        file_path: str,
+        strategy: Optional[ExtractionStrategy],
+        max_words: Optional[int]
+    ) -> ExtractedContent:
+        """Extract text from MOBI file"""
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                out_path, metadata_raw = mobi.extract(file_path, tmpdir)
+                
+                # MOBI extraction usually results in HTML files
+                full_text = ""
+                for root, dirs, files in os.walk(out_path):
+                    for f in sorted(files):
+                        if f.lower().endswith(('.html', '.htm')):
+                            with open(os.path.join(root, f), 'r', encoding='utf-8', errors='ignore') as html_file:
+                                soup = BeautifulSoup(html_file.read(), 'html.parser')
+                                for script in soup(["script", "style"]):
+                                    script.decompose()
+                                text = soup.get_text()
+                                lines = (line.strip() for line in text.splitlines())
+                                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                                text = ' '.join(chunk for chunk in chunks if chunk)
+                                if text:
+                                    full_text += text + "\n\n"
+                
+                word_count = len(full_text.split())
+                
+                # Simple chapter detection for MOBI (heuristic)
+                chapters = [c for c in full_text.split("\n\n") if len(c.split()) > 50]
+                
+                if strategy is None:
+                    strategy = self._select_strategy(word_count)
+                
+                extracted_text = self._apply_strategy(full_text, chapters, word_count, strategy)
+                
+                if max_words and len(extracted_text.split()) > max_words:
+                    words = extracted_text.split()[:max_words]
+                    extracted_text = " ".join(words) + "\n\n[... truncated for length ...]"
+
+                return ExtractedContent(
+                    text=extracted_text,
+                    word_count=word_count,
+                    chapter_count=max(1, len(chapters)),
+                    metadata_tags=metadata_raw.get("Subject", []),
+                    existing_summary=metadata_raw.get("Description", [""])[0],
+                    strategy_used=strategy
+                )
+        except Exception as e:
+            raise RuntimeError(f"Error extracting text from MOBI: {str(e)}")
+
+    def _extract_rtf(
+        self,
+        file_path: str,
+        strategy: Optional[ExtractionStrategy],
+        max_words: Optional[int]
+    ) -> ExtractedContent:
+        """Extract text from RTF file"""
+        try:
+            with open(file_path, 'r', encoding='ascii', errors='ignore') as f:
+                rtf_content = f.read()
+                text = rtf_to_text(rtf_content)
+                
+            word_count = len(text.split())
+            if strategy is None:
+                strategy = self._select_strategy(word_count)
+            
+            # For plain text/RTF, we don't have clear chapters
+            chapters = [c for c in text.split("\n\n") if len(c.split()) > 50]
+            extracted_text = self._apply_strategy(text, chapters, word_count, strategy)
+            
+            if max_words and len(extracted_text.split()) > max_words:
+                words = extracted_text.split()[:max_words]
+                extracted_text = " ".join(words) + "\n\n[... truncated for length ...]"
+
+            return ExtractedContent(
+                text=extracted_text,
+                word_count=word_count,
+                chapter_count=max(1, len(chapters)),
+                metadata_tags=[],
+                existing_summary="",
+                strategy_used=strategy
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error extracting text from RTF: {str(e)}")
+
+    def _extract_txt(
+        self,
+        file_path: str,
+        strategy: Optional[ExtractionStrategy],
+        max_words: Optional[int]
+    ) -> ExtractedContent:
+        """Extract text from TXT file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+                
+            word_count = len(text.split())
+            if strategy is None:
+                strategy = self._select_strategy(word_count)
+            
+            chapters = [c for c in text.split("\n\n") if len(c.split()) > 50]
+            extracted_text = self._apply_strategy(text, chapters, word_count, strategy)
+            
+            if max_words and len(extracted_text.split()) > max_words:
+                words = extracted_text.split()[:max_words]
+                extracted_text = " ".join(words) + "\n\n[... truncated for length ...]"
+
+            return ExtractedContent(
+                text=extracted_text,
+                word_count=word_count,
+                chapter_count=max(1, len(chapters)),
+                metadata_tags=[],
+                existing_summary="",
+                strategy_used=strategy
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error extracting text from TXT: {str(e)}")
+
+    def _apply_strategy(self, full_text: str, chapters: List[str], word_count: int, strategy: ExtractionStrategy) -> str:
+        """Helper to apply extraction strategy"""
+        if strategy == ExtractionStrategy.FULL:
+            return full_text
+        elif strategy == ExtractionStrategy.SMART_SAMPLING:
+            return self._smart_sample(chapters if chapters else [full_text], word_count)
+        elif strategy == ExtractionStrategy.ROLLING_SUMMARY:
+            return full_text
+        elif strategy == ExtractionStrategy.METADATA_ONLY:
+            return self._metadata_sample(chapters if chapters else [full_text], "")
+        else:
+            return full_text
     
     def _get_epub_chapters(self, book: epub.EpubBook) -> List[str]:
         """Extract all chapter texts from EPUB"""

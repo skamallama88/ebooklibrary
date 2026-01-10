@@ -39,17 +39,19 @@ class TagExpressionParser:
         self._aliases_cache = None
     
     def _load_aliases(self) -> dict:
-        """Load all tag aliases into a lookup dictionary"""
+        """Load all tag aliases into a lookup dictionary using optimized query"""
         if self._aliases_cache is not None:
             return self._aliases_cache
         
-        aliases = {}
-        alias_records = self.db.query(models.TagAlias).all()
+        from sqlalchemy.orm import joinedload
+        alias_records = self.db.query(models.TagAlias)\
+            .options(joinedload(models.TagAlias.canonical_tag))\
+            .all()
         
+        aliases = {}
         for alias_record in alias_records:
-            canonical_tag = self.db.query(models.Tag).get(alias_record.canonical_tag_id)
-            if canonical_tag:
-                aliases[normalize_tag_name(alias_record.alias)] = canonical_tag.name
+            if alias_record.canonical_tag:
+                aliases[normalize_tag_name(alias_record.alias)] = alias_record.canonical_tag.name
         
         self._aliases_cache = aliases
         return aliases

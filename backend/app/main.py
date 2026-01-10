@@ -19,7 +19,8 @@ setup_logging(settings.log_level)
 logger = get_logger(__name__)
 
 # Create database tables
-models.Base.metadata.create_all(bind=database.engine)
+if os.environ.get("ENV") != "testing":
+    models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Ebook Library API", version="0.1.0")
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from .. import models, schemas, database
 
@@ -12,7 +12,7 @@ def get_collections(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    return db.query(models.Collection).filter(models.Collection.owner_id == current_user.id).all()
+    return db.query(models.Collection).options(joinedload(models.Collection.books)).filter(models.Collection.owner_id == current_user.id).all()
 
 @router.post("/", response_model=schemas.Collection)
 def create_collection(
@@ -37,7 +37,7 @@ def create_collection(
 
 @router.get("/{collection_id}", response_model=schemas.Collection)
 def get_collection(collection_id: int, db: Session = Depends(database.get_db)):
-    collection = db.query(models.Collection).filter(models.Collection.id == collection_id).first()
+    collection = db.query(models.Collection).options(joinedload(models.Collection.books)).filter(models.Collection.id == collection_id).first()
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
     return collection
