@@ -250,6 +250,55 @@ const TagRow: React.FC<TagRowProps> = ({
     description: tag.description || '',
   });
 
+  // Alias management state
+  const [aliases, setAliases] = useState<any[]>([]);
+  const [newAlias, setNewAlias] = useState('');
+  const [loadingAliases, setLoadingAliases] = useState(false);
+
+  // Fetch aliases when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      fetchAliases();
+    }
+  }, [isEditing]);
+
+  const fetchAliases = async () => {
+    setLoadingAliases(true);
+    try {
+      const res = await api.get(`/tags/${tag.id}/aliases`);
+      setAliases(res.data);
+    } catch (err) {
+      console.error("Failed to fetch aliases", err);
+    } finally {
+      setLoadingAliases(false);
+    }
+  };
+
+  const handleAddAlias = async () => {
+    if (!newAlias.trim()) return;
+    try {
+      const res = await api.post(`/tags/${tag.id}/aliases`, {
+        alias: newAlias,
+        canonical_tag_id: tag.id
+      });
+      setAliases([...aliases, res.data]);
+      setNewAlias('');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to add alias");
+    }
+  };
+
+  const handleRemoveAlias = async (aliasId: number) => {
+    if (!confirm("Remove this alias?")) return;
+    try {
+      await api.delete(`/tags/aliases/${aliasId}`);
+      setAliases(aliases.filter(a => a.id !== aliasId));
+    } catch (err) {
+      console.error("Failed to remove alias", err);
+    }
+  };
+
+
   const tagTypeColors: Record<string, string> = {
     genre: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     theme: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -305,9 +354,57 @@ const TagRow: React.FC<TagRowProps> = ({
               value={editForm.description}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900"
+              className="w-full px-3 py-2 border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
             />
           </div>
+
+          {/* Alias Management Section */}
+          <div className="pt-2 border-t dark:border-slate-700">
+             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Aliases
+            </label>
+            
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newAlias}
+                onChange={(e) => setNewAlias(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddAlias()}
+                placeholder="Add new alias..."
+                className="flex-1 px-3 py-1.5 text-sm border dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+              />
+              <button
+                onClick={handleAddAlias}
+                disabled={!newAlias.trim()}
+                className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+
+            {loadingAliases ? (
+              <div className="text-xs text-slate-500">Loading aliases...</div>
+            ) : (
+                <div className="flex flex-wrap gap-2">
+                  {aliases.map(alias => (
+                    <div key={alias.id} className="flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-700 dark:text-slate-300 border dark:border-slate-700">
+                      <span>{alias.alias}</span>
+                      <button
+                        onClick={() => handleRemoveAlias(alias.id)}
+                        className="p-0.5 hover:text-red-500 rounded"
+                        title="Remove alias"
+                      >
+                        <XMarkIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {aliases.length === 0 && (
+                    <span className="text-xs text-slate-400 italic">No aliases defined</span>
+                  )}
+                </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => onSaveEdit(editForm)}
@@ -424,11 +521,11 @@ const TagRow: React.FC<TagRowProps> = ({
           {tag.description && (
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{tag.description}</p>
           )}
-          {(tag.aliases && tag.aliases.length > 0) && (
+            {(tag.aliases && tag.aliases.length > 0) && (
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs text-slate-500 dark:text-slate-400">Aliases:</span>
               {tag.aliases.map(alias => (
-                <span key={alias} className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                <span key={alias} className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
                   {alias}
                 </span>
               ))}
