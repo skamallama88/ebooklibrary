@@ -7,12 +7,12 @@ from .services import auth as auth_service
 from .routers import books, auth, collections, tags, progress, bookmarks, utilities, users, ai, ai_templates
 from .middleware import limiter, rate_limit_exceeded_handler
 from .logging_config import setup_logging, get_logger
+from .config import settings
 from sqlalchemy.orm import Session
 import os
 
 # Setup logging
-log_level = os.getenv("LOG_LEVEL", "INFO")
-setup_logging(log_level)
+setup_logging(settings.log_level)
 logger = get_logger(__name__)
 
 # Create database tables
@@ -29,7 +29,7 @@ async def seed_data():
     db = database.SessionLocal()
     try:
         # Check if we should force-reset the admin password
-        reset_admin = os.getenv("RESET_ADMIN_PASSWORD", "false").lower() == "true"
+        reset_admin = settings.reset_admin_password
         
         # Create or update default admin user
         admin_user = db.query(models.User).filter(models.User.username == "admin").first()
@@ -57,15 +57,14 @@ async def seed_data():
         db.close()
 
 # CORS configuration with environment-based origins
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-allow_all = os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true"
+allow_all = settings.allow_all_origins
 
 allowed_origins = [
     "http://localhost:3000",
     "http://localhost:5173",  # Vite dev server
     "http://localhost:5174",  # Vite dev server
     "http://localhost:7300",  # Production frontend port
-    frontend_url,
+    settings.frontend_url,
 ]
 
 logger.debug(f"CORS configuration - Allow all origins: {allow_all}")

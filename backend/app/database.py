@@ -1,8 +1,9 @@
 import os
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import create_engine
+from .config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://ebookuser:ebookpass@localhost:5432/ebooklibrary")
+DATABASE_URL = settings.database_url
 
 # Create engine with connection pooling configuration
 engine = create_engine(
