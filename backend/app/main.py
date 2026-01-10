@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from . import models, database
@@ -8,8 +9,10 @@ from .routers import books, auth, collections, tags, progress, bookmarks, utilit
 from .middleware import limiter, rate_limit_exceeded_handler
 from .logging_config import setup_logging, get_logger
 from .config import settings
+from .exceptions import BookLibraryException
 from sqlalchemy.orm import Session
 import os
+import uuid
 
 # Setup logging
 setup_logging(settings.log_level)
@@ -23,6 +26,33 @@ app = FastAPI(title="Ebook Library API", version="0.1.0")
 # Add rate limiter to app state
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Add request ID middleware
+@app.middleware("http")
+async def add_request_id_middleware(request: Request, call_next):
+    """Add unique request ID to each request for tracking"""
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+# Global exception handler for custom exceptions
+@app.exception_handler(BookLibraryException)
+async def custom_exception_handler(request: Request, exc: BookLibraryException):
+    """Handle all custom application exceptions with consistent format"""
+    logger.error(
+        f"Request {getattr(request.state, 'request_id', 'unknown')} failed: {exc.message}",
+        exc_info=True
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.message,
+            "details": exc.details,
+            "request_id": getattr(request.state, "request_id", None)
+        }
+    )
 
 @app.on_event("startup")
 async def seed_data():
