@@ -65,7 +65,9 @@ const TagAutocomplete: React.FC<TagAutocompleteProps> = ({
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (suggestions[selectedIndex]) {
-          onSelect(suggestions[selectedIndex].name);
+          const tag = suggestions[selectedIndex];
+          const value = tag.type === 'general' ? tag.name : `${tag.type}:${tag.name}`;
+          onSelect(value);
           onClose();
         }
       } else if (e.key === 'Escape') {
@@ -101,7 +103,8 @@ const TagAutocomplete: React.FC<TagAutocompleteProps> = ({
     tone: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
     structure: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
     character_trait: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-    meta: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-400',
+    meta: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    general: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-400',
   };
 
   return (
@@ -117,7 +120,8 @@ const TagAutocomplete: React.FC<TagAutocompleteProps> = ({
             <button
               key={tag.id}
               onClick={() => {
-                onSelect(tag.name);
+                const value = tag.type === 'general' ? tag.name : `${tag.type}:${tag.name}`;
+                onSelect(value);
                 onClose();
               }}
               className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
@@ -130,7 +134,7 @@ const TagAutocomplete: React.FC<TagAutocompleteProps> = ({
                 </span>
                 <span
                   className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${
-                    tagTypeColors[tag.type] || tagTypeColors.meta
+                    tagTypeColors[tag.type] || tagTypeColors.general
                   }`}
                 >
                   {tag.type}

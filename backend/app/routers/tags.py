@@ -31,7 +31,7 @@ async def require_admin(current_user: models.User = Depends(get_current_user)):
 
 @router.get("/autocomplete", response_model=List[schemas.TagAutocomplete])
 def autocomplete_tags(
-    q: str = Query(..., min_length=1),
+    q: Optional[str] = Query(None),
     tag_type: Optional[str] = None,
     limit: int = 20,
     db: Session = Depends(database.get_db)
@@ -39,11 +39,24 @@ def autocomplete_tags(
     """
     Autocomplete tag names based on partial query.
     Returns tags with their type and usage count.
+    Supports 'type:query' syntax in q parameter.
     """
-    query = db.query(models.Tag).filter(
-        models.Tag.name.ilike(f"%{q}%")
-    )
+    search_query = q or ""
     
+    # Parse type:query syntax
+    if ":" in search_query:
+        parts = search_query.split(":", 1)
+        tag_type = parts[0]
+        search_query = parts[1]
+    
+    # Start query
+    query = db.query(models.Tag)
+    
+    # Filter by name if we have a search query
+    if search_query:
+        query = query.filter(models.Tag.name.ilike(f"%{search_query}%"))
+    
+    # Filter by type
     if tag_type:
         query = query.filter(models.Tag.type == tag_type)
     

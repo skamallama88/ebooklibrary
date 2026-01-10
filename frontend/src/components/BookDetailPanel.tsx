@@ -12,7 +12,19 @@ interface Author {
 interface Tag {
     id: number;
     name: string;
+    type?: string;
 }
+
+const tagTypeColors: Record<string, string> = {
+    genre: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    theme: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    setting: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    tone: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    structure: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+    character_trait: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    meta: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    general: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-400',
+};
 
 interface Collection {
     id: number;
@@ -357,7 +369,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                     ) : (
                                         <div className="flex flex-wrap gap-1">
                                             {book.tags.map(tag => (
-                                                <span key={tag.id} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium">
+                                                <span key={tag.id} className={`px-2 py-0.5 rounded-full text-xs font-medium ${tagTypeColors[tag.type || 'general'] || tagTypeColors.general}`}>
                                                     {tag.name}
                                                 </span>
                                             ))}

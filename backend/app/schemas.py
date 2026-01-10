@@ -5,7 +5,7 @@ from datetime import datetime
 # Tag schemas
 class TagBase(BaseModel):
     name: str  # Normalized snake_case name
-    type: str = "meta"  # genre, theme, setting, tone, structure, character_trait, series, author, language, format, status, meta
+    type: str = "general"  # genre, theme, setting, tone, structure, character_trait, series, author, language, format, status, meta, general
     description: Optional[str] = None
 
 class TagCreate(TagBase):

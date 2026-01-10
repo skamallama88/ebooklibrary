@@ -222,12 +222,29 @@ def update_book(book_id: int, book_update: schemas.BookUpdate, db: Session = Dep
         old_tags = set(db_book.tags)
         
         tags = []
-        for tag_name in update_data.pop("tags"):
-            tag = db.query(models.Tag).filter(models.Tag.name == tag_name).first()
+        for tag_input in update_data.pop("tags"):
+            # Parse booru-style "type:name" syntax
+            tag_type = "general"
+            tag_name = tag_input
+            
+            if ":" in tag_input:
+                parts = tag_input.split(":", 1)
+                # Simple validation to ensure it's not just a colon in a name (though names shouldn't have colons ideally)
+                # Booru syntax assumes type:name.
+                # Valid types are usually limited, but we allow custom ones? Schema says any string.
+                tag_type = parts[0]
+                tag_name = parts[1]
+            
+            from ..utils.tag_normalization import normalize_tag_name
+            normalized_name = normalize_tag_name(tag_name)
+            
+            tag = db.query(models.Tag).filter(models.Tag.name == normalized_name).first()
             if not tag:
-                tag = models.Tag(name=tag_name, usage_count=0)
+                # Create new tag with specified type
+                tag = models.Tag(name=normalized_name, type=tag_type, usage_count=0)
                 db.add(tag)
                 db.flush()
+            
             tags.append(tag)
         
         new_tags = set(tags)
