@@ -138,6 +138,8 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const [toc, setToc] = useState<any[]>([]);
     const bookRef = useRef<any>(null);
 
+    const isReadyToSave = useRef(false);
+
     useEffect(() => {
         let isMounted = true;
         let book: any;
@@ -145,6 +147,9 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
 
         const loadBook = async () => {
             try {
+                // Reset save flag
+                isReadyToSave.current = false;
+
                 // First fetch book metadata to know the format and title
                 const metaRes = await api.get(`/books/${bookId}`);
                 if (!isMounted) return;
@@ -196,6 +201,8 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                         if (savedPage && !isNaN(parseInt(savedPage))) {
                             setPageNumber(parseInt(savedPage));
                         }
+                        // Enable saving after initial load
+                        setTimeout(() => { isReadyToSave.current = true; }, 500);
                     });
                 } else {
                     book = ePub(blob);
@@ -209,8 +216,31 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                         }
                         return book.locations.generate(1000);
                     }).then(() => {
-                        // Refresh TOC with percentages if needed, or just relay on locations
-                        if (isMounted) setToc([...book.navigation.toc]);
+                        if (isMounted) {
+                            // Refresh TOC with percentages
+                            setToc([...book.navigation.toc]);
+                            
+                            // Force update location state with calculated percentage if we have a current location
+                            if (renditionRef.current && renditionRef.current.location) {
+                                const currentLocation = renditionRef.current.location;
+                                const percentage = book.locations.percentageFromCfi(currentLocation.start.cfi);
+                                setLocation({
+                                    ...currentLocation,
+                                    start: {
+                                        ...currentLocation.start,
+                                        percentage: percentage
+                                    }
+                                });
+
+                                // Ensure we save this valid percentage to the server if we're ready
+                                if (isReadyToSave.current) {
+                                    api.post(`/progress/${bookId}`, {
+                                        cfi: currentLocation.start.cfi,
+                                        percentage: percentage * 100
+                                    }).catch(err => console.error("Failed to save progress", err));
+                                }
+                            }
+                        }
                     });
 
                     rendition = book.renderTo(viewerRef.current!, {
@@ -239,29 +269,54 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                     api.get(`/progress/${bookId}`).then(res => {
                         const savedCfi = res.data.cfi;
                         if (savedCfi && bookFormat === 'epub') {
-                            rendition.display(savedCfi);
+                            rendition.display(savedCfi).then(() => {
+                                // Enable saving only after initial content is displayed
+                                isReadyToSave.current = true;
+                            });
                         } else {
-                            rendition.display();
+                            rendition.display().then(() => {
+                                isReadyToSave.current = true;
+                            });
                         }
                     });
 
                     rendition.on('relocated', (location: any) => {
                         if (!isMounted) return;
-                        setLocation(location);
-                        // Save progress
-                        let percentage = 0;
+                        
+                        // Calculate percentage carefully
+                        let percentage = null;
                         try {
                             if (book.locations.length() > 0) {
-                                percentage = book.locations.percentageFromCfi(location.start.cfi) * 100;
+                                percentage = book.locations.percentageFromCfi(location.start.cfi);
                             }
                         } catch (e) {
                             console.warn("Could not calculate percentage from CFI", e);
                         }
+                        
+                        if (percentage !== null) {
+                            // Update state with calculated percentage
+                            setLocation({
+                                ...location,
+                                start: {
+                                    ...location.start,
+                                    percentage: percentage
+                                }
+                            });
 
-                        api.post(`/progress/${bookId}`, {
-                            cfi: location.start.cfi,
-                            percentage: percentage
-                        }).catch(err => console.error("Failed to save progress", err));
+                            // Only save to server if we are ready (initial load done)
+                            // AND if we have a valid percentage (locations ready)
+                            if (isReadyToSave.current) {
+                                api.post(`/progress/${bookId}`, {
+                                    cfi: location.start.cfi,
+                                    percentage: percentage * 100
+                                }).catch(err => console.error("Failed to save progress", err));
+                            }
+                        } else {
+                             // If we can't calculate percentage, we still update location state 
+                             // but maybe keep old percentage or just don't update percentage field?
+                             // Better to update location so the reader works, but NOT save to server.
+                             setLocation(location);
+                        }
                     });
 
                     rendition.on('rendered', () => {
@@ -282,11 +337,14 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
 
         return () => {
             isMounted = false;
+            // Only destroy book if we are actually unmounting the component or changing bookId
+            // We do NOT want to destroy when just changing layout modes since we handle that below
             if (book) {
                 book.destroy();
             }
         };
-    }, [bookId, flowMode, isTwoPage]);
+        // Removed flowMode and isTwoPage from dependencies to prevent full reload
+    }, [bookId]);
 
     // Handle settings updates
     useEffect(() => {
