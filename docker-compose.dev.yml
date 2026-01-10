@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://ebookuser:ebookpass@db:5432/ebooklibrary
+
   frontend:
     build:
       context: ./frontend
