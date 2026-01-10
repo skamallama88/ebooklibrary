@@ -9,7 +9,7 @@ from sqlalchemy import func
 
 from .llm_provider import create_provider, LLMProvider, LLMResponse
 from .text_extractor import TextExtractor, ExtractedContent, ExtractionStrategy
-from ..models import Book, Tag, AIProviderConfig, TagPriorityConfig, book_tags
+from ..models import Book, Tag, AIProviderConfig, TagPriorityConfig, book_tags, AIPromptTemplate
 from ..database import get_db
 
 
@@ -80,7 +80,8 @@ class AIService:
         self,
         book_id: int,
         extraction_strategy: Optional[ExtractionStrategy] = None,
-        overwrite_existing: bool = False
+        overwrite_existing: bool = False,
+        template_id: Optional[int] = None
     ) -> AISummaryResult:
         """
         Generate AI summary for a book
@@ -89,6 +90,7 @@ class AIService:
             book_id: ID of the book to summarize
             extraction_strategy: Optional override of default strategy
             overwrite_existing: Whether to consider existing summary
+            template_id: Optional specific prompt template to use
         
         Returns:
             AISummaryResult with generated summary
@@ -111,11 +113,15 @@ class AIService:
             strategy=extraction_strategy
         )
         
+        # Get template content
+        template_content = self._get_prompt_template_content(template_id, "summary")
+        
         # Build prompt
         prompt = self._build_summary_prompt(
             book=book,
             extracted=extracted,
-            overwrite_existing=overwrite_existing
+            overwrite_existing=overwrite_existing,
+            template_content=template_content
         )
         
         # Generate summary
@@ -136,7 +142,8 @@ class AIService:
         max_tags: int = 20,
         per_type_limits: Optional[Dict[str, int]] = None,
         merge_existing: bool = True,
-        tag_priorities: Optional[List[Tuple[str, int]]] = None
+        tag_priorities: Optional[List[Tuple[str, int]]] = None,
+        template_id: Optional[int] = None
     ) -> AITagResult:
         """
         Generate AI tags for a book
@@ -147,6 +154,7 @@ class AIService:
             per_type_limits: Per-type tag limits override
             merge_existing: Whether to keep existing tags
             tag_priorities: Optional priority override
+            template_id: Optional specific prompt template to use
         
         Returns:
             AITagResult with suggested tags
@@ -174,6 +182,9 @@ class AIService:
         # Get library tag statistics for suggestions
         tag_stats = self._get_tag_statistics()
         
+        # Get template content
+        template_content = self._get_prompt_template_content(template_id, "tags")
+        
         # Build prompt
         prompt = self._build_tag_prompt(
             book=book,
@@ -181,7 +192,8 @@ class AIService:
             existing_tags=existing_tag_names,
             tag_priorities=tag_priorities,
             tag_stats=tag_stats,
-            max_tags=max_tags
+            max_tags=max_tags,
+            template_content=template_content
         )
         
         # Generate tags
@@ -206,26 +218,60 @@ class AIService:
             applied_limits=applied_limits
         )
     
+    def _get_prompt_template_content(self, template_id: Optional[int], template_type: str) -> Optional[str]:
+        """Fetch template content by ID or default"""
+        if template_id:
+            template = self.db.query(AIPromptTemplate).filter(AIPromptTemplate.id == template_id).first()
+            if template:
+                return template.template
+        
+        # Check for default if no specific ID or ID not found
+        default = self.db.query(AIPromptTemplate).filter(
+            AIPromptTemplate.type == template_type,
+            AIPromptTemplate.is_default == True
+        ).first()
+        
+        if default:
+            return default.template
+        
+        return None
+
     def _build_summary_prompt(
         self,
         book: Book,
         extracted: ExtractedContent,
-        overwrite_existing: bool
+        overwrite_existing: bool,
+        template_content: Optional[str] = None
     ) -> str:
         """Build prompt for summary generation"""
-        # Base prompt
+        
+        authors = ", ".join([a.name for a in book.authors]) if book.authors else "Unknown"
+        existing_summary_text = extracted.existing_summary if (not overwrite_existing and extracted.existing_summary) else ""
+        
+        if template_content:
+            try:
+                return template_content.format(
+                    book_title=book.title,
+                    authors=authors,
+                    existing_summary=existing_summary_text,
+                    book_content=extracted.text[:15000],
+                    word_count=extracted.word_count
+                )
+            except Exception as e:
+                print(f"Error formatting template: {e}. Falling back to default.")
+        
+        # Base prompt (Fallback)
         prompt = f"""You are a literary analyst. Generate a concise, informative summary of the following book.
 
 Book Title: {book.title}
 """
         
         if book.authors:
-            authors = ", ".join([a.name for a in book.authors])
             prompt += f"Author(s): {authors}\n"
         
         # Include existing summary if not overwriting
-        if not overwrite_existing and extracted.existing_summary:
-            prompt += f"\nExisting Summary:\n{extracted.existing_summary}\n"
+        if existing_summary_text:
+            prompt += f"\nExisting Summary:\n{existing_summary_text}\n"
             prompt += "\nYou may refine or expand on the existing summary.\n"
         
         # Add extracted text
@@ -251,37 +297,70 @@ Summary:"""
         existing_tags: List[str],
         tag_priorities: List[Tuple[str, int, int]],  # (type, priority, max_tags)
         tag_stats: Dict,
-        max_tags: int
+        max_tags: int,
+        template_content: Optional[str] = None
     ) -> str:
         """Build prompt for tag generation"""
+        
+        authors = ", ".join([a.name for a in book.authors]) if book.authors else "Unknown"
+        metadata_tags_str = ", ".join(extracted.metadata_tags) if extracted.metadata_tags else ""
+        current_tags_str = ", ".join(existing_tags) if existing_tags else ""
+        
+        # Build tag limits string
+        tag_limits_str = ""
+        for tag_type, priority, max_count in sorted(tag_priorities, key=lambda x: x[1]):
+            tag_limits_str += f"- {tag_type}: max {max_count} tags\n"
+            
+        popular_str = ""
+        if tag_stats:
+            popular_str = ", ".join([f"{name} ({count})" for name, count in tag_stats[:20]])
+            
+        book_sample = extracted.text[:10000]
+
+        if template_content:
+            try:
+                # Note: existing_tags in template might imply metadata or db tags. 
+                # We pass metadata_tags_str as existing_tags to match default template usage likely intended for metadata.
+                # Ideally templates should use specific keys like {metadata_tags} and {db_tags}
+                return template_content.format(
+                    book_title=book.title,
+                    authors=authors,
+                    existing_tags=metadata_tags_str, 
+                    current_tags=current_tags_str, # Extra key just in case I fix the template later
+                    tag_limits=tag_limits_str,
+                    book_sample=book_sample,
+                    popular_tags=popular_str,
+                    max_tags=max_tags
+                )
+            except Exception as e:
+                print(f"Error formatting template: {e}. Falling back to default.")
+
+        # Fallback to hardcoded logic
         prompt = f"""You are a book cataloging expert. Generate booru-style tags for this book.
 
 Book Title: {book.title}
 """
         
         if book.authors:
-            authors = ", ".join([a.name for a in book.authors])
             prompt += f"Author(s): {authors}\n"
         
         # Add metadata tags if available
-        if extracted.metadata_tags:
-            prompt += f"Existing Metadata Tags: {', '.join(extracted.metadata_tags)}\n"
+        if metadata_tags_str:
+            prompt += f"Existing Metadata Tags: {metadata_tags_str}\n"
         
         if existing_tags:
-            prompt += f"Current Tags: {', '.join(existing_tags)}\n"
+            prompt += f"Current Tags: {current_tags_str}\n"
         
         # Tag type priorities and limits
         prompt += "\nTag Type Priorities and Limits:\n"
-        for tag_type, priority, max_count in sorted(tag_priorities, key=lambda x: x[1]):
-            prompt += f"- {tag_type}: max {max_count} tags\n"
+        prompt += tag_limits_str
         
         # Add sample from book
-        prompt += f"\nBook Sample:\n{extracted.text[:10000]}\n"
+        prompt += f"\nBook Sample:\n{book_sample}\n"
         
         # Popular tags in library
-        if tag_stats:
-            popular = ", ".join([f"{name} ({count})" for name, count in tag_stats[:20]])
-            prompt += f"\nPopular Tags in Library: {popular}\n"
+        if popular_str:
+            prompt += f"\nPopular Tags in Library: {popular_str}\n"
         
         prompt += f"""
 Generate {max_tags} tags maximum following these rules:

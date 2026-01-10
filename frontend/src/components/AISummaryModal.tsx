@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import api from '../api';
@@ -27,6 +27,17 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
     const [showPreview, setShowPreview] = useState(false);
     const [overwriteExisting, setOverwriteExisting] = useState(false);
     const [extractionStrategy, setExtractionStrategy] = useState('smart_sampling');
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<number | 'default'>('default');
+
+    useEffect(() => {
+        if (isOpen) {
+            api.get('/ai/templates/').then(res => {
+                const summaryTemplates = res.data.filter((t: any) => t.type === 'summary');
+                setTemplates(summaryTemplates);
+            }).catch(err => console.error("Failed to load templates", err));
+        }
+    }, [isOpen]);
 
     const handleGenerate = async () => {
         if (!bookId) return;
@@ -39,7 +50,8 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
                 book_id: bookId,
                 overwrite_existing: overwriteExisting,
                 auto_approve: false,
-                extraction_strategy: extractionStrategy
+                extraction_strategy: extractionStrategy,
+                template_id: selectedTemplateId === 'default' ? null : selectedTemplateId
             });
 
             setGeneratedSummary(res.data.summary);
@@ -139,6 +151,26 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
                                                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 max-h-32 overflow-y-auto">
                                                     {currentSummary}
                                                 </div>
+                                            </div>
+                                        )}
+
+                                        {templates.length > 0 && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                                    Prompt Template
+                                                </label>
+                                                <select
+                                                    value={selectedTemplateId}
+                                                    onChange={(e) => setSelectedTemplateId(e.target.value === 'default' ? 'default' : Number(e.target.value))}
+                                                    className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 mb-4"
+                                                >
+                                                    <option value="default">Default System Prompt</option>
+                                                    {templates.map(t => (
+                                                        <option key={t.id} value={t.id}>
+                                                            {t.name} {t.is_default && '(Default)'}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                         )}
 

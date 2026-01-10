@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260109_1001_add_ai_config'
-down_revision = '20260106_1030_001_add_tag_metadata_and_aliases'
+down_revision = '001'
 branch_labels = None
 depends_on = None
 

@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, SparklesIcon, TagIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 import api from '../api';
@@ -39,6 +39,17 @@ const AITagModal: React.FC<AITagModalProps> = ({
     // Results
     const [suggestedTags, setSuggestedTags] = useState<SuggestedTag[]>([]);
     const [appliedLimits, setAppliedLimits] = useState<Record<string, number>>({});
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<number | 'default'>('default');
+
+    useEffect(() => {
+        if (isOpen) {
+            api.get('/ai/templates/').then(res => {
+                const tagTemplates = res.data.filter((t: any) => t.type === 'tags');
+                setTemplates(tagTemplates);
+            }).catch(err => console.error("Failed to load templates", err));
+        }
+    }, [isOpen]);
 
     const handleGenerate = async () => {
         if (!bookId) return;
@@ -51,7 +62,8 @@ const AITagModal: React.FC<AITagModalProps> = ({
                 book_id: bookId,
                 max_tags: maxTags,
                 merge_existing: mergeExisting,
-                auto_approve: false
+                auto_approve: false,
+                template_id: selectedTemplateId === 'default' ? null : selectedTemplateId
             });
 
             // Mark all as selected by default
@@ -225,6 +237,26 @@ const AITagModal: React.FC<AITagModalProps> = ({
                                             </h4>
                                             
                                             <div className="space-y-4">
+                                                {templates.length > 0 && (
+                                                    <div>
+                                                        <label className="block text-sm text-slate-700 dark:text-slate-300 mb-1">
+                                                            Prompt Template
+                                                        </label>
+                                                        <select
+                                                            value={selectedTemplateId}
+                                                            onChange={(e) => setSelectedTemplateId(e.target.value === 'default' ? 'default' : Number(e.target.value))}
+                                                            className="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2"
+                                                        >
+                                                            <option value="default">Default System Prompt</option>
+                                                            {templates.map(t => (
+                                                                <option key={t.id} value={t.id}>
+                                                                    {t.name} {t.is_default && '(Default)'}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+
                                                 <div>
                                                     <label className="flex justify-between text-sm text-slate-700 dark:text-slate-300 mb-1">
                                                         <span>Max AI Tags to Generate</span>

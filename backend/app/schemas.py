@@ -306,6 +306,7 @@ class AISummaryRequest(BaseModel):
     overwrite_existing: bool = False
     auto_approve: bool = False
     extraction_strategy: Optional[str] = None
+    template_id: Optional[int] = None
 
 class AISummaryResponse(BaseModel):
     book_id: int
@@ -330,6 +331,7 @@ class AITagRequest(BaseModel):
     merge_existing: bool = True
     auto_approve: bool = False
     tag_priorities: Optional[List[Tuple[str, int]]] = None
+    template_id: Optional[int] = None
 
 class AITagResponse(BaseModel):
     book_id: int
@@ -368,3 +370,27 @@ class TagPriorityConfig(TagPriorityConfigBase):
 
 class TagPriorityConfigUpdate(BaseModel):
     priorities: List[TagPriorityConfigBase]
+
+# AI Prompt Template schemas
+class AIPromptTemplateBase(BaseModel):
+    name: str
+    type: str  # summary, tags
+    template: str
+    is_default: bool = False
+    description: Optional[str] = None
+
+class AIPromptTemplateCreate(AIPromptTemplateBase):
+    user_id: Optional[int] = None
+
+class AIPromptTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    template: Optional[str] = None
+    is_default: Optional[bool] = None
+    description: Optional[str] = None
+
+class AIPromptTemplate(AIPromptTemplateBase):
+    id: int
+    user_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)

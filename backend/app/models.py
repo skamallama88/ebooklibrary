@@ -163,3 +163,15 @@ class TagPriorityConfig(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for global defaults
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class AIPromptTemplate(Base):
+    __tablename__ = "ai_prompt_templates"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    type = Column(String, nullable=False)  # summary, tags
+    template = Column(Text, nullable=False)
+    is_default = Column(Boolean, default=False)
+    description = Column(Text, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

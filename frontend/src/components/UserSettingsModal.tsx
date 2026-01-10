@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import api from '../api';
+import AITemplateManager from './AITemplateManager';
 
 interface UserSettingsModalProps {
     isOpen: boolean;
@@ -27,6 +28,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
     const [loading, setLoading] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState<'general' | 'ai'>('general');
 
     // Password change state
     const [currentPassword, setCurrentPassword] = useState('');
@@ -52,7 +54,12 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
             console.error(err);
         }
     };
-
+    
+    // ... handleSaveSettings and handleChangePassword remain same ...
+    // Using previous implementation for handlers to avoid re-writing large blocks if possible
+    // Wait, replacing the top part means I need to keep the handlers. 
+    // I will use replace_file_content carefully.
+    
     const handleSaveSettings = async () => {
         if (!settings) return;
 
@@ -125,9 +132,9 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b dark:border-slate-700">
+                <div className="flex items-center justify-between px-6 py-4 border-b dark:border-slate-700">
                     <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                        User Settings
+                        Settings
                     </h2>
                     <button
                         onClick={onClose}
@@ -136,10 +143,30 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
                         <XMarkIcon className="w-5 h-5" />
                     </button>
                 </div>
+                
+                {/* Tabs */}
+                <div className="flex border-b dark:border-slate-700 px-6">
+                    <button
+                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        onClick={() => setActiveTab('general')}
+                    >
+                        General
+                    </button>
+                    <button
+                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'ai' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        onClick={() => setActiveTab('ai')}
+                    >
+                        AI Prompts
+                    </button>
+                </div>
 
-                <div className="p-6 space-y-6">
-                    {/* Account Settings */}
-                    <div>
+                <div className="p-6">
+                    {activeTab === 'ai' ? (
+                        <AITemplateManager />
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Account Settings */}
+                            <div>
                         <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-4">
                             Account Information
                         </h3>
@@ -400,6 +427,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
                             </div>
                         </div>
                     </div>
+                </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -36,6 +36,9 @@ target_metadata = Base.metadata
 
 def get_url():
     """Get database URL from environment variables"""
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
     user = os.getenv("POSTGRES_USER", "postgres")
     password = os.getenv("POSTGRES_PASSWORD", "postgres")
     server = os.getenv("POSTGRES_SERVER", "db")
