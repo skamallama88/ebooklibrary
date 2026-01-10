@@ -12,27 +12,6 @@ import os
 # Create database tables
 models.Base.metadata.create_all(bind=database.engine)
 
-# Handle schema migrations for existing tables
-from sqlalchemy import text
-with database.engine.connect() as conn:
-    try:
-        # Check if column exists in Postgres
-        result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='recently_read_limit_days'"))
-        if not result.fetchone():
-            conn.execute(text("ALTER TABLE users ADD COLUMN recently_read_limit_days INTEGER DEFAULT 30"))
-            conn.commit()
-            print("Successfully added recently_read_limit_days column to users table")
-            
-        # Check for word_count in books
-        result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='books' AND column_name='word_count'"))
-        if not result.fetchone():
-            conn.execute(text("ALTER TABLE books ADD COLUMN word_count INTEGER"))
-            conn.commit()
-            print("Successfully added word_count column to books table")
-            
-    except Exception as e:
-        print(f"Migration error: {e}")
-
 app = FastAPI(title="Ebook Library API", version="0.1.0")
 
 # Add rate limiter to app state
