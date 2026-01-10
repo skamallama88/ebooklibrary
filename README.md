@@ -1,5 +1,8 @@
 # Ebook Library - Self-Hosted EPUB & PDF Manager
 
+[![CI/CD](https://github.com/skamallama88/ebooklibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/skamallama88/ebooklibrary/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/skamallama88/ebooklibrary/branch/main/graph/badge.svg)](https://codecov.io/gh/skamallama88/ebooklibrary)
+
 A modern, self-hosted web application for managing and reading ebooks at scale (20,000+ books), built with FastAPI and React.
 
 ## Features
