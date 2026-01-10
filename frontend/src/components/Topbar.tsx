@@ -11,7 +11,8 @@ import {
     WrenchIcon,
     Bars3Icon,
     EllipsisVerticalIcon,
-    SparklesIcon
+    SparklesIcon,
+    ChartBarIcon
 } from '@heroicons/react/24/outline';
 import UserMenu from './UserMenu';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -249,12 +250,15 @@ const Topbar: React.FC<TopbarProps> = ({
                         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 overflow-hidden z-50">
                             <div className="py-1">
                                 <button
-                                    disabled={true}
-                                    className="w-full text-left px-4 py-2 text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center gap-2"
-                                    title="Coming Soon"
+                                    onClick={() => {
+                                        if (onWordCount) onWordCount(selectedBookIds);
+                                        setShowUtilities(false);
+                                    }}
+                                    disabled={selectedBookIds.length === 0}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
-                                    <span>Summarizer</span>
-                                    <span className="text-[10px] uppercase bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">Soon</span>
+                                    <ChartBarIcon className="w-4 h-4" />
+                                    <span>Word Count</span>
                                 </button>
                                 
                                 <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
