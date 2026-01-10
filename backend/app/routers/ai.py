@@ -40,7 +40,7 @@ async def list_providers(
 
 
 @router.post("/providers", response_model=AIProviderConfigSchema, status_code=status.HTTP_201_CREATED)
-async def create_provider(
+async def create_provider_config(
     provider_config: AIProviderConfigCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -329,7 +329,8 @@ async def generate_summary(
         result = await ai_service.generate_summary(
             book_id=request.book_id,
             extraction_strategy=strategy,
-            overwrite_existing=request.overwrite_existing
+            overwrite_existing=request.overwrite_existing,
+            template_id=request.template_id
         )
         
         # If auto-approve, save to database
@@ -417,7 +418,8 @@ async def generate_tags(
             max_tags=request.max_tags,
             per_type_limits=request.per_type_limits,
             merge_existing=request.merge_existing,
-            tag_priorities=request.tag_priorities
+            tag_priorities=request.tag_priorities,
+            template_id=request.template_id
         )
         
         # Convert to schema format
