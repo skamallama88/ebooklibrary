@@ -29,7 +29,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     return user
 
 @router.post("/token", response_model=schemas.Token)
-# @limiter.limit("5/minute")
+@limiter.limit("5/minute")
 async def login_for_access_token(
     request: Request,
     db: Session = Depends(database.get_db),
