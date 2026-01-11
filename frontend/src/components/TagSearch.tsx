@@ -22,6 +22,7 @@ const TagSearch: React.FC<TagSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Extract current word being typed for autocomplete
+  // Extract current word being typed for autocomplete
   useEffect(() => {
     if (!inputRef.current) return;
 
@@ -38,9 +39,18 @@ const TagSearch: React.FC<TagSearchProps> = ({
     // Extract tag name (remove type: prefix if exists)
     const tagName = cleanWord.includes(':') ? cleanWord.split(':')[1] : cleanWord;
     
-    setCurrentWord(tagName);
-    setShowAutocomplete(tagName.length >= 2 && !textBeforeCursor.endsWith(' '));
-  }, [value]);
+    // Only update state if it changed to avoid loops
+    if (tagName !== currentWord) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCurrentWord(tagName);
+    }
+    
+    const shouldShow = tagName.length >= 2 && !textBeforeCursor.endsWith(' ');
+    if (shouldShow !== showAutocomplete) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setShowAutocomplete(shouldShow);
+    }
+  }, [value, currentWord, showAutocomplete]);
 
   const handleTagSelect = (tagName: string) => {
     if (!inputRef.current) return;

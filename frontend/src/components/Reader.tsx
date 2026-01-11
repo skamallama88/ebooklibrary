@@ -516,16 +516,23 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
         }
     };
 
-    const chapterMarkers = React.useMemo(() => {
-        if (!toc || toc.length === 0) return [];
+    const [chapterMarkers, setChapterMarkers] = useState<{ pos: number; title: string }[]>([]);
+
+    useEffect(() => {
+        if (!toc || toc.length === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setChapterMarkers([]);
+            return;
+        }
 
         if (format === 'pdf') {
-            return toc.map(item => ({
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setChapterMarkers(toc.map(item => ({
                 pos: (item.page / numPages) * 100,
                 title: item.title
-            }));
+            })));
         } else if (bookRef.current && bookRef.current.locations.length() > 0) {
-            return toc.map(item => {
+            const markers = toc.map(item => {
                 let percentage = 0;
                 try {
                     // Try to get CFI for the TOC item safely
@@ -563,16 +570,16 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                             title: item.label
                         };
                     }
-                } catch (e: any) {
+                } catch {
                     // Fail silently for individual bad markers to keep the rest
                 }
                 return null;
             }).filter((marker): marker is { pos: number, title: string } =>
                 marker !== null
             );
+            setChapterMarkers(markers);
         }
-        return [];
-    }, [toc, format, numPages]);
+    }, [toc, format, numPages]); // bookRef.current is not a dep, but logic runs when TOC updates which happens after book load
 
     const readerBg = theme === 'sepia' ? 'bg-[#f4ecd8]' : theme === 'dark' ? 'bg-[#121212]' : 'bg-white';
     const containerBg = theme === 'sepia' ? 'bg-[#ebe4d1]' : theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-slate-100';

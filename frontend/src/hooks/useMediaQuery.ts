@@ -48,17 +48,18 @@ export function useMediaQuery(): MediaQueryResult {
  * @param query - Media query string, e.g., "(max-width: 640px)"
  */
 export function useMediaQueryMatch(query: string): boolean {
-    const [matches, setMatches] = useState<boolean>(false);
+    const [matches, setMatches] = useState<boolean>(() => {
+        // Initialize with correct value
+        if (typeof window !== 'undefined') {
+            return window.matchMedia(query).matches;
+        }
+        return false;
+    });
 
     useEffect(() => {
         const media = window.matchMedia(query);
         
-        // Update initial state
-        if (media.matches !== matches) {
-            setMatches(media.matches);
-        }
-
-        // Create listener
+        // Handler for state update
         const listener = (e: MediaQueryListEvent) => {
             setMatches(e.matches);
         };
@@ -68,7 +69,7 @@ export function useMediaQueryMatch(query: string): boolean {
 
         // Cleanup
         return () => media.removeEventListener('change', listener);
-    }, [matches, query]);
+    }, [query]); // Removed 'matches' from dependency array to avoid loops
 
     return matches;
 }
