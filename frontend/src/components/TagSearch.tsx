@@ -47,7 +47,6 @@ const TagSearch: React.FC<TagSearchProps> = ({
     
     const shouldShow = tagName.length >= 2 && !textBeforeCursor.endsWith(' ');
     if (shouldShow !== showAutocomplete) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowAutocomplete(shouldShow);
     }
   }, [value, currentWord, showAutocomplete]);

@@ -18,7 +18,7 @@ import AITagModal from './components/AITagModal';
 import api from './api';
 import { useAuth } from './AuthContext';
 import LoginPage from './pages/LoginPage';
-import type { Book, SortingState } from './types';
+import type { Book, SortingState, Tag } from './types';
 import './index.css';
 
 function App() {
@@ -80,7 +80,7 @@ function App() {
     queryKey: ['books', searchTerm, activeFilter, page, sorting],
     enabled: !!user,
     queryFn: async () => {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | undefined> = {
         skip: page * limit,
         limit,
       };
@@ -387,8 +387,8 @@ function App() {
         isOpen={showAISummaryModal}
         onClose={() => setShowAISummaryModal(false)}
         bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-        bookTitle={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.title || ''}
-        currentSummary={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.description || ''}
+        bookTitle={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.title || ''}
+        currentSummary={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.description || ''}
         onSuccess={() => refetch()}
       />
 
@@ -396,8 +396,8 @@ function App() {
         isOpen={showAITagModal}
         onClose={() => setShowAITagModal(false)}
         bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-        bookTitle={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.title || ''}
-        currentTags={books?.items?.find((b: any) => b.id === selectedBookIds[0])?.tags?.map((t: any) => t.name) || []}
+        bookTitle={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.title || ''}
+        currentTags={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.tags?.map((t: Tag) => t.name) || []}
         onSuccess={() => refetch()}
       />
     </div>

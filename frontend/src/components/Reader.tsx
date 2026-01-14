@@ -24,9 +24,43 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
+const themes: Record<string, { body: { background: string; color: string } }> = {
+    light: { body: { background: '#ffffff', color: '#1a1a1b' } },
+    sepia: { body: { background: '#f4ecd8', color: '#5b4636' } },
+    dark: { body: { background: '#121212', color: '#e0e0e0' } },
+};
+
 interface ReaderProps {
     bookId: number;
     onClose: () => void;
+}
+
+interface Bookmark {
+    id: number;
+    cfi: string;
+    label: string;
+    created_at?: string; // Optional since it might not always be returned or populated
+}
+
+interface TocItem {
+    label: string;
+    href: string;
+    page: number;
+    cfi?: string;
+    title?: string;
+}
+
+interface ReaderLocation {
+    start: {
+        cfi: string;
+        percentage: number;
+        href: string;
+    };
+    end: {
+        cfi: string;
+        percentage: number;
+        href: string;
+    };
 }
 
 const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
@@ -34,7 +68,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     const viewerRef = useRef<HTMLDivElement>(null);
     const renditionRef = useRef<Rendition | null>(null);
     const [title, setTitle] = useState('');
-    const [location, setLocation] = useState<any>(null);
+    const [location, setLocation] = useState<ReaderLocation | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [format, setFormat] = useState<'epub' | 'pdf' | 'txt' | 'rtf' | 'mobi' | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -46,7 +80,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     // TOC & Bookmarks
     const [showSidebar, setShowSidebar] = useState(false);
     const [activeTab, setActiveTab] = useState<'chapters' | 'bookmarks'>('chapters');
-    const [bookmarks, setBookmarks] = useState<any[]>([]);
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
 
     // Load settings from localStorage or use defaults
     const [fontSize, setFontSize] = useState(() => {
@@ -103,20 +137,15 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             .catch(err => console.error("Failed to fetch bookmarks", err));
     }, [bookId]);
 
-    const themes = {
-        light: { body: { background: '#ffffff', color: '#1a1a1b' } },
-        sepia: { body: { background: '#f4ecd8', color: '#5b4636' } },
-        dark: { body: { background: '#121212', color: '#e0e0e0' } },
-    };
-
     const settingsRef = useRef({ theme, fontSize, fontFamily });
     useEffect(() => {
         settingsRef.current = { theme, fontSize, fontFamily };
     }, [theme, fontSize, fontFamily]);
 
-    const applyStylesToContents = (contents: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyStylesToContents = React.useCallback((contents: any) => {
         const { theme: currTheme, fontFamily: currFont } = settingsRef.current;
-        const activeTheme = themes[currTheme as keyof typeof themes];
+        const activeTheme = themes[currTheme];
 
         contents.addStylesheetRules({
             "body": {
@@ -134,16 +163,19 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 "border-radius": "4px"
             }
         });
-    };
+    }, []); // themes is static object but used inside
 
-    const [toc, setToc] = useState<any[]>([]);
+    const [toc, setToc] = useState<TocItem[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bookRef = useRef<any>(null);
 
     const isReadyToSave = useRef(false);
 
     useEffect(() => {
         let isMounted = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let book: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let rendition: any;
 
         const loadBook = async () => {
@@ -176,7 +208,8 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 });
 
                 if (!isMounted) return;
-                const blob = response.data;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const blob = response.data as any;
 
                 if (bookFormat === 'pdf') {
                     setPdfBlob(blob);
@@ -200,7 +233,12 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                                 const pageRef = item.dest[0];
                                 pageNum = (await pdf.getPageIndex(pageRef)) + 1;
                             }
-                            return { title: item.title, page: pageNum, href: String(pageNum) };
+                            return { 
+                                title: item.title, 
+                                label: item.title, 
+                                page: pageNum, 
+                                href: String(pageNum) 
+                            } as TocItem;
                         }));
                         setToc(chapters);
                     }
@@ -217,22 +255,37 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 } else {
                     book = ePub(blob);
                     bookRef.current = book;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (window as any).book = book;
 
                     book.ready.then(() => {
                         if (isMounted) {
-                            setTitle((book as any).package.metadata.title || metaRes.data.title);
-                            setToc(book.navigation.toc || []);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setTitle((book.package.metadata as any).title || metaRes.data.title);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            setToc(book.navigation.toc.map((t: any) => ({
+                                ...t,
+                                label: t.label,
+                                href: t.href,
+                                page: 0 // EPUBs don't have page numbers the same way
+                            })) || []);
                         }
                         return book.locations.generate(1000);
                     }).then(() => {
                         if (isMounted) {
                             // Refresh TOC with percentages
-                            setToc([...book.navigation.toc]);
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             setToc(book.navigation.toc.map((t: any) => ({
+                                ...t,
+                                label: t.label,
+                                href: t.href,
+                                page: 0
+                            })) || []);
                             
                             // Force update location state with calculated percentage if we have a current location
                             if (renditionRef.current && renditionRef.current.location) {
-                                const currentLocation = renditionRef.current.location;
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const currentLocation = renditionRef.current.location as any;
                                 const percentage = book.locations.percentageFromCfi(currentLocation.start.cfi);
                                 setLocation({
                                     ...currentLocation,
@@ -262,11 +315,12 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                     });
 
                     renditionRef.current = rendition;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (window as any).rendition = rendition;
 
                     // Register themes
                     Object.keys(themes).forEach(name => {
-                        rendition.themes.register(name, (themes as any)[name]);
+                        rendition.themes.register(name, themes[name]);
                     });
                     rendition.themes.select(theme);
                     rendition.themes.fontSize(`${fontSize}%`);
@@ -290,11 +344,12 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                         }
                     });
 
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     rendition.on('relocated', (location: any) => {
                         if (!isMounted) return;
                         
                         // Calculate percentage carefully
-                        let percentage = null;
+                        let percentage: number | null = null;
                         try {
                             if (book.locations.length() > 0) {
                                 percentage = book.locations.percentageFromCfi(location.start.cfi);
@@ -322,10 +377,10 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                                 }).catch(err => console.error("Failed to save progress", err));
                             }
                         } else {
-                             // If we can't calculate percentage, we still update location state 
-                             // but maybe keep old percentage or just don't update percentage field?
-                             // Better to update location so the reader works, but NOT save to server.
-                             setLocation(location);
+                            // If we can't calculate percentage, we still update location state 
+                            // but maybe keep old percentage or just don't update percentage field?
+                            // Better to update location so the reader works, but NOT save to server.
+                            setLocation(location);
                         }
                     });
 
@@ -354,6 +409,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             }
         };
         // Removed flowMode and isTwoPage from dependencies to prevent full reload
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bookId]);
 
     // Handle settings updates
@@ -364,13 +420,14 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             renditionRef.current.themes.font(fontFamily === 'serif' ? 'serif' : 'sans-serif');
 
             // Apply styles to already loaded views
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             renditionRef.current.views().forEach((view: any) => {
                 if (view.contents) {
                     applyStylesToContents(view.contents);
                 }
             });
         }
-    }, [theme, fontSize, fontFamily]);
+    }, [theme, fontSize, fontFamily, applyStylesToContents]);
 
     useEffect(() => {
         if (renditionRef.current) {
@@ -389,7 +446,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [flowMode, isTwoPage]);
+    }, [flowMode, isTwoPage, applyStylesToContents]);
 
     const next = React.useCallback(() => {
         if (format === 'pdf') {
@@ -459,7 +516,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             percentage = location.start.percentage;
 
             // Try to find chapter name
-            const chapter = toc.find((item: any) => item.href === location.start.href);
+            const chapter = toc.find((item) => item.href === location.start.href);
             label = chapter ? `${chapter.label} (${Math.round(percentage * 100)}%)` : `Location ${Math.round(percentage * 100)}%`;
         }
 
@@ -520,16 +577,14 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
 
     useEffect(() => {
         if (!toc || toc.length === 0) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setChapterMarkers([]);
             return;
         }
 
         if (format === 'pdf') {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setChapterMarkers(toc.map(item => ({
                 pos: (item.page / numPages) * 100,
-                title: item.title
+                title: item.title || item.label || 'Chapter'
             })));
         } else if (bookRef.current && bookRef.current.locations.length() > 0) {
             const markers = toc.map(item => {
@@ -579,7 +634,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
             );
             setChapterMarkers(markers);
         }
-    }, [toc, format, numPages]); // bookRef.current is not a dep, but logic runs when TOC updates which happens after book load
+    }, [toc, format, numPages]);
 
     const readerBg = theme === 'sepia' ? 'bg-[#f4ecd8]' : theme === 'dark' ? 'bg-[#121212]' : 'bg-white';
     const containerBg = theme === 'sepia' ? 'bg-[#ebe4d1]' : theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-slate-100';

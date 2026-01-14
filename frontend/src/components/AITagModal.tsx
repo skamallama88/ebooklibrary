@@ -79,7 +79,7 @@ const AITagModal: React.FC<AITagModalProps> = ({
             setShowPreview(true);
         } catch (err: unknown) {
             console.error('Failed to generate tags:', err);
-            const errorMessage = (err as any).response?.data?.detail || 'Failed to generate tags. Make sure an AI provider is configured and active.';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Failed to generate tags. Make sure an AI provider is configured and active.';
             setError(errorMessage);
         } finally {
             setGenerating(false);

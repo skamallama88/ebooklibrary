@@ -25,8 +25,8 @@ const LoginPage: React.FC = () => {
                 }
             });
             await login(response.data.access_token);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Login failed');
+        } catch (err: unknown) {
+            setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Login failed');
         } finally {
             setIsLoading(false);
         }

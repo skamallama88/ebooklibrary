@@ -108,14 +108,14 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
         return freqs;
     }, [data]);
 
-    const sortTags = (tags: Tag[]) => {
+    const sortTags = React.useCallback((tags: Tag[]) => {
         return [...tags].sort((a, b) => {
             const freqA = tagFrequencies[a.name] || 0;
             const freqB = tagFrequencies[b.name] || 0;
             if (freqB !== freqA) return freqB - freqA;
             return a.name.localeCompare(b.name);
         });
-    };
+    }, [tagFrequencies]);
 
     const columns = useMemo<ColumnDef<Book>[]>(() => [
         {
@@ -369,7 +369,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                 );
             },
         }) as ColumnDef<Book>,
-    ], []);
+    ], [sortTags]);
 
 
     const table = useReactTable({

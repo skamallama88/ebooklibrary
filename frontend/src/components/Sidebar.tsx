@@ -16,6 +16,7 @@ import {
 import api from '../api';
 import { clsx } from 'clsx';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import type { Collection, Author, Tag } from '../types';
 
 interface SidebarProps {
     collapsed: boolean;
@@ -251,7 +252,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                                     />
                                 </div>
                             )}
-                            {collections?.map((col: any) => (
+                            {collections?.map((col: Collection) => (
                                 <div
                                     key={col.id}
                                     className={clsx(
@@ -325,7 +326,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                         </div>
                         {!authorsCollapsed && (
                             <div className="flex flex-col space-y-1 px-3">
-                                {authors?.slice(0, 8).map((author: any) => (
+                                {authors?.slice(0, 8).map((author: Author) => (
                                     <button
                                         key={author.id}
                                         onClick={() => onFilterChange(`authors:"=${author.name}"`)}
@@ -389,7 +390,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed, activeFilter
                         </div>
                         {!tagsCollapsed && (
                             <div className="flex flex-wrap gap-2 px-3">
-                                {tags?.slice(0, 10).map((tag: any) => (
+                                {tags?.slice(0, 10).map((tag: Tag) => (
                                     <button
                                         key={tag.id}
                                         onClick={() => onFilterChange(`tags:"=${tag.name}"`)}

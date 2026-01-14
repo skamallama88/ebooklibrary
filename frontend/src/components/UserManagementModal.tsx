@@ -40,8 +40,8 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
         try {
             const response = await api.get('/users/');
             setUsers(response.data);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to load users');
+        } catch (err: unknown) {
+            setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to load users');
         } finally {
             setLoading(false);
         }
@@ -77,8 +77,8 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
             setShowCreateForm(false);
             fetchUsers();
             setTimeout(() => setCreateSuccess(''), 3000);
-        } catch (err: any) {
-            setCreateError(err.response?.data?.detail || 'Failed to create user');
+        } catch (err: unknown) {
+            setCreateError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to create user');
         } finally {
             setLoading(false);
         }
@@ -93,8 +93,8 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
         try {
             await api.delete(`/users/${userId}`);
             fetchUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to delete user');
+        } catch (err: unknown) {
+            setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to delete user');
         } finally {
             setLoading(false);
         }
@@ -105,8 +105,8 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({ isOpen, onClo
         try {
             await api.put(`/users/${userId}/admin`);
             fetchUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to update admin status');
+        } catch (err: unknown) {
+            setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to update admin status');
         } finally {
             setLoading(false);
         }

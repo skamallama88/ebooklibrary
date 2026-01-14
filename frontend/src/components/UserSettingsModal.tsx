@@ -49,7 +49,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
         try {
             const response = await api.get('/users/me/settings');
             setSettings(response.data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError('Failed to load settings');
             console.error(err);
         }
@@ -80,8 +80,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
             });
             setSaveMessage('Settings saved successfully!');
             setTimeout(() => setSaveMessage(''), 3000);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to save settings');
+        } catch (err: unknown) {
+            setError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to save settings');
         } finally {
             setLoading(false);
         }
@@ -119,8 +119,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({ isOpen, onClose }
             setNewPassword('');
             setConfirmPassword('');
             setTimeout(() => setPasswordMessage(''), 3000);
-        } catch (err: any) {
-            setPasswordError(err.response?.data?.detail || 'Failed to change password');
+        } catch (err: unknown) {
+            setPasswordError((err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to change password');
         } finally {
             setLoading(false);
         }

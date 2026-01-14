@@ -13,6 +13,12 @@ interface Tag {
   aliases?: string[];
 }
 
+interface TagAlias {
+  id: number;
+  alias: string;
+  canonical_tag_id: number;
+}
+
 interface TagManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -251,18 +257,11 @@ const TagRow: React.FC<TagRowProps> = ({
   });
 
   // Alias management state
-  const [aliases, setAliases] = useState<any[]>([]);
+  const [aliases, setAliases] = useState<TagAlias[]>([]);
   const [newAlias, setNewAlias] = useState('');
   const [loadingAliases, setLoadingAliases] = useState(false);
 
-  // Fetch aliases when entering edit mode
-  useEffect(() => {
-    if (isEditing) {
-      fetchAliases();
-    }
-  }, [isEditing]);
-
-  const fetchAliases = async () => {
+  const fetchAliases = React.useCallback(async () => {
     setLoadingAliases(true);
     try {
       const res = await api.get(`/tags/${tag.id}/aliases`);
@@ -272,7 +271,14 @@ const TagRow: React.FC<TagRowProps> = ({
     } finally {
       setLoadingAliases(false);
     }
-  };
+  }, [tag.id]);
+
+  // Fetch aliases when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      fetchAliases();
+    }
+  }, [isEditing, fetchAliases]);
 
   const handleAddAlias = async () => {
     if (!newAlias.trim()) return;
@@ -283,6 +289,7 @@ const TagRow: React.FC<TagRowProps> = ({
       });
       setAliases([...aliases, res.data]);
       setNewAlias('');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to add alias");
     }

@@ -45,6 +45,41 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
         is_read: false,
     });
 
+    const fetchBookDetails = React.useCallback(async () => {
+        if (!bookId) return;
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const [bookRes, progressRes] = await Promise.all([
+                api.get(`/books/${bookId}`),
+                api.get(`/progress/${bookId}`)
+            ]);
+            
+            const book = bookRes.data;
+            const progress = progressRes.data;
+
+            setFormData({
+                title: book.title || '',
+                authors: book.authors?.map((a: { name: string }) => a.name).join(', ') || '',
+                description: book.description || '',
+                publisher: book.publisher || '',
+                language: book.language || '',
+                tags: book.tags?.map((t: { name: string }) => t.name).join(', ') || '',
+                series: book.series || '',
+                series_index: book.series_index?.toString() || '',
+                rating: book.rating || 0,
+                is_read: !!progress?.is_finished,
+            });
+        } catch (err) {
+            console.error('Failed to fetch book details:', err);
+            setError('Failed to load book metadata');
+        } finally {
+            setLoading(false);
+        }
+    }, [bookId]);
+
     useEffect(() => {
         if (isOpen && bookId) {
             fetchBookDetails();
@@ -64,42 +99,7 @@ const EditMetadataModal: React.FC<EditMetadataModalProps> = ({
             });
             setError(null);
         }
-    }, [isOpen, bookId]);
-
-    const fetchBookDetails = async () => {
-        if (!bookId) return;
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            const [bookRes, progressRes] = await Promise.all([
-                api.get(`/books/${bookId}`),
-                api.get(`/progress/${bookId}`)
-            ]);
-            
-            const book = bookRes.data;
-            const progress = progressRes.data;
-
-            setFormData({
-                title: book.title || '',
-                authors: book.authors?.map((a: any) => a.name).join(', ') || '',
-                description: book.description || '',
-                publisher: book.publisher || '',
-                language: book.language || '',
-                tags: book.tags?.map((t: any) => t.name).join(', ') || '',
-                series: book.series || '',
-                series_index: book.series_index?.toString() || '',
-                rating: book.rating || 0,
-                is_read: !!progress?.is_finished,
-            });
-        } catch (err) {
-            console.error('Failed to fetch book details:', err);
-            setError('Failed to load book metadata');
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [isOpen, bookId, fetchBookDetails]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

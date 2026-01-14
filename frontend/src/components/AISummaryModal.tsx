@@ -61,7 +61,7 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
             setShowPreview(true);
         } catch (err: unknown) {
             console.error('Failed to generate summary:', err);
-            const errorMessage = (err as any).response?.data?.detail || 'Failed to generate summary. Make sure an AI provider is configured and active.';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Failed to generate summary. Make sure an AI provider is configured and active.';
             setError(errorMessage);
         } finally {
             setGenerating(false);

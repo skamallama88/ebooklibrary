@@ -74,7 +74,7 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
             }
         } catch (err: unknown) {
             console.error('Failed to discover models:', err);
-            const errorMessage = (err as any).response?.data?.detail || 'Failed to discover models. Is Ollama running?';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Failed to discover models. Is Ollama running?';
             setError(errorMessage);
         } finally {
             setDiscovering(false);
@@ -109,7 +109,7 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
             setAvailableModels([]);
         } catch (err: unknown) {
             console.error('Failed to add provider:', err);
-            const errorMessage = (err as any).response?.data?.detail || 'Failed to add provider';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Failed to add provider';
             setError(errorMessage);
         } finally {
             setSaving(false);
@@ -131,7 +131,7 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
             setTestResults(prev => ({ ...prev, [id]: res.data }));
         } catch (err: unknown) {
             console.error('Failed to test provider:', err);
-            const errorMessage = (err as any).response?.data?.detail || 'Test failed';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Test failed';
             setTestResults(prev => ({ 
                 ...prev, 
                 [id]: { status: 'error', message: errorMessage }

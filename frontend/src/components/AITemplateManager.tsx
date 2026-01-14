@@ -58,7 +58,7 @@ const AITemplateManager: React.FC = () => {
             setFormData({});
         } catch (err: unknown) {
             console.error(err);
-            const errorMessage = (err as any).response?.data?.detail || 'Failed to save template';
+            const errorMessage = ((err as { response?: { data?: { detail?: string } } }).response?.data?.detail) || 'Failed to save template';
             setError(errorMessage);
         } finally {
             setLoading(false);
