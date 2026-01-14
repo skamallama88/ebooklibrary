@@ -2,6 +2,7 @@ import os
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from .metadata import extract_metadata
+from .text_extractor import TextExtractor
 from datetime import datetime
 
 BOOK_STORAGE_PATH = os.getenv("BOOK_STORAGE_PATH", "/data/books")
@@ -21,8 +22,27 @@ def import_book(db: Session, file_path: str):
 
     # Extract metadata
     metadata = extract_metadata(file_path)
+    title = metadata.get("title", os.path.basename(file_path))
     
+    # Calculate word count
+    word_count = 0
+    try:
+        extractor = TextExtractor()
+        content = extractor.extract_text(file_path)
+        word_count = content.word_count
+    except Exception as e:
+        print(f"Error extracting word count for {file_path}: {e}")
+
+    # Check if book with same title exists (duplicate detection)
+    is_duplicate = False
+    duplicate_of_id = None
+    existing_book = db.query(models.Book).filter(models.Book.title == title).first()
+    if existing_book:
+        is_duplicate = True
+        duplicate_of_id = existing_book.id
+
     # Create or get authors
+    # ... (omitted for brevity in logic but I'll include it in actual replacement)
     authors = []
     for author_name in metadata.get("authors", []):
         author = db.query(models.Author).filter(models.Author.name == author_name).first()
@@ -44,14 +64,18 @@ def import_book(db: Session, file_path: str):
         
     # Create book record
     new_book = models.Book(
-        title=metadata.get("title", os.path.basename(file_path)),
+        title=title,
         file_path=file_path,
         cover_path=metadata.get("cover_path"),
         format=metadata.get("format"),
         file_size=metadata.get("file_size"),
+        published_date=metadata.get("published_date"),
         description=metadata.get("description"),
         publisher=metadata.get("publisher"),
         language=metadata.get("language"),
+        word_count=word_count,
+        is_duplicate=is_duplicate,
+        duplicate_of_id=duplicate_of_id,
         authors=authors,
         tags=tags
     )

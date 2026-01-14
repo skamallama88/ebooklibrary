@@ -23,6 +23,8 @@ export interface Book {
   description?: string;
   cover_image?: string;
   file_path?: string;
+  is_duplicate?: boolean;
+  duplicate_of_id?: number;
   file_type?: string;
   publication_date?: string;
   publisher_id?: number;

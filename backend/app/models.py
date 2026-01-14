@@ -104,6 +104,11 @@ class Book(Base):
     progress = relationship("ReadingProgress", back_populates="book")
     collections = relationship("Collection", secondary=collection_books, back_populates="books")
     bookmarks = relationship("Bookmark", back_populates="book")
+    
+    # Duplicate handling
+    is_duplicate = Column(Boolean, default=False)
+    duplicate_of_id = Column(Integer, ForeignKey("books.id"), nullable=True)
+    duplicate_of = relationship("Book", remote_side=[id])
 
 class Collection(Base):
     __tablename__ = "collections"

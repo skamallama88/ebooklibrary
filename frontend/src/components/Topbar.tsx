@@ -35,6 +35,8 @@ interface TopbarProps {
     onOpenAIProvider: () => void;
     onOpenAISummary: () => void;
     onOpenAITags: () => void;
+    duplicatesCount?: number;
+    onOpenDuplicates?: () => void;
 }
 
 const Topbar: React.FC<TopbarProps> = ({
@@ -55,6 +57,8 @@ const Topbar: React.FC<TopbarProps> = ({
     onOpenAIProvider,
     onOpenAISummary,
     onOpenAITags,
+    duplicatesCount = 0,
+    onOpenDuplicates,
 }) => {
     const { isMobile } = useMediaQuery();
     const isSingleSelection = selectedBookIds.length === 1;
@@ -241,10 +245,15 @@ const Topbar: React.FC<TopbarProps> = ({
                     <div className="relative" ref={utilitiesRef}>
                     <button
                         onClick={() => setShowUtilities(!showUtilities)}
-                        className={`p-1.5 rounded-lg transition-colors ${showUtilities ? 'bg-slate-200 dark:bg-slate-700' : 'bg-slate-100 dark:bg-slate-800'} text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700`}
+                        className={`p-1.5 rounded-lg transition-colors relative ${showUtilities ? 'bg-slate-200 dark:bg-slate-700' : 'bg-slate-100 dark:bg-slate-800'} text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700`}
                         title="Utilities"
                     >
                         <WrenchIcon className="w-5 h-5" />
+                        {duplicatesCount > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-1 ring-white">
+                                {duplicatesCount}
+                            </span>
+                        )}
                     </button>
                     {showUtilities && (
                         <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border dark:border-slate-700 overflow-hidden z-50">
@@ -285,6 +294,26 @@ const Topbar: React.FC<TopbarProps> = ({
                                 >
                                     <SparklesIcon className="w-4 h-4 text-purple-500" />
                                     <span>AI Tags</span>
+                                </button>
+
+                                <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
+
+                                <button
+                                    onClick={() => {
+                                        if (onOpenDuplicates) onOpenDuplicates();
+                                        setShowUtilities(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Square3Stack3DIcon className="w-4 h-4 text-orange-500" />
+                                        <span>Duplicates</span>
+                                    </div>
+                                    {duplicatesCount > 0 && (
+                                        <span className="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                            {duplicatesCount}
+                                        </span>
+                                    )}
                                 </button>
                             </div>
                         </div>

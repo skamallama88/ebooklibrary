@@ -5,7 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from . import models, database
 from .services import auth as auth_service
-from .routers import books, auth, collections, tags, progress, bookmarks, utilities, users, ai, ai_templates
+from .routers import books, auth, collections, tags, progress, bookmarks, utilities, users, ai, ai_templates, duplicates
 from .middleware import limiter, rate_limit_exceeded_handler
 from .logging_config import setup_logging, get_logger
 from .config import settings
@@ -127,6 +127,7 @@ app.include_router(users.router)
 app.include_router(utilities.router)
 app.include_router(ai.router)
 app.include_router(ai_templates.router)
+app.include_router(duplicates.router)
 
 @app.get("/")
 async def root():

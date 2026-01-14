@@ -38,9 +38,36 @@ def extract_epub_metadata(file_path: str) -> Dict[str, Any]:
             "language": book.get_metadata('DC', 'language')[0][0] if book.get_metadata('DC', 'language') else None,
             "description": "",
             "tags": [s[0] for s in book.get_metadata('DC', 'subject')] if book.get_metadata('DC', 'subject') else [],
+            "published_date": None,
             "format": "EPUB",
             "file_size": os.path.getsize(file_path)
         }
+
+        # Extract published date
+        dates = book.get_metadata('DC', 'date')
+        if dates:
+            try:
+                # DC:date can be just year "2023" or full ISO "2023-01-01"
+                date_str = dates[0][0]
+                if len(date_str) == 4:
+                    metadata["published_date"] = datetime.strptime(date_str, "%Y")
+                else:
+                    # Try some common formats
+                    for fmt in ("%Y-%m-%d", "%Y-%m", "%Y-%m-%dT%H:%M:%S"):
+                        try:
+                            metadata["published_date"] = datetime.strptime(date_str[:len(fmt.replace("%",""))+2], fmt) # simplistic truncate
+                            break
+                        except ValueError:
+                            continue
+                    
+                    if not metadata["published_date"]:
+                        # Last resort: just try to parse the first 10 chars as ISO
+                        try:
+                            metadata["published_date"] = datetime.fromisoformat(date_str[:10])
+                        except Exception:
+                            pass
+            except Exception:
+                pass
 
         # Extract description (often in DC:description)
         desc = book.get_metadata('DC', 'description')
@@ -79,10 +106,22 @@ def extract_mobi_metadata(file_path: str) -> Dict[str, Any]:
                 "publisher": metadata_raw.get("Publisher", [None])[0],
                 "description": metadata_raw.get("Description", [""])[0],
                 "tags": metadata_raw.get("Subject", []),
+                "published_date": None,
                 "format": "MOBI",
                 "file_size": os.path.getsize(file_path),
                 "cover_path": None
             }
+            
+            # Try to get published date from MOBI
+            pub_date = metadata_raw.get("PublishingDate", [None])[0]
+            if pub_date:
+                try:
+                    if len(pub_date) >= 10:
+                        metadata["published_date"] = datetime.fromisoformat(pub_date[:10])
+                    elif len(pub_date) == 4:
+                        metadata["published_date"] = datetime.strptime(pub_date, "%Y")
+                except Exception:
+                    pass
             
             # Mobi metadata can be messy, clean it up
             if isinstance(metadata["authors"], str):

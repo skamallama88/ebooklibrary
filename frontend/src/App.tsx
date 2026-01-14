@@ -9,6 +9,7 @@ import EditMetadataModal from './components/EditMetadataModal';
 import UserSettingsModal from './components/UserSettingsModal';
 import UserManagementModal from './components/UserManagementModal';
 import TagManagementModal from './components/TagManagementModal';
+import DuplicatesModal from './components/DuplicatesModal';
 import Topbar from './components/Topbar';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import TagSearch from './components/TagSearch';
@@ -41,6 +42,7 @@ function App() {
   const [showAIProviderModal, setShowAIProviderModal] = useState(false);
   const [showAISummaryModal, setShowAISummaryModal] = useState(false);
   const [showAITagModal, setShowAITagModal] = useState(false);
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('sidebar_collapsed', String(sidebarCollapsed));
@@ -114,6 +116,15 @@ function App() {
       const response = await api.get('/books/', { params });
       return response.data;
     },
+  });
+
+  const { data: duplicatesCount, refetch: refetchDuplicatesCount } = useQuery({
+    queryKey: ['duplicates-count'],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await api.get('/duplicates/');
+      return res.data.length;
+    }
   });
 
   const handleDeleteBooks = async (ids: number[]) => {
@@ -247,6 +258,8 @@ function App() {
           onOpenAIProvider={() => setShowAIProviderModal(true)}
           onOpenAISummary={() => setShowAISummaryModal(true)}
           onOpenAITags={() => setShowAITagModal(true)}
+          duplicatesCount={duplicatesCount || 0}
+          onOpenDuplicates={() => setShowDuplicatesModal(true)}
         />
         {/* Header */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b dark:border-slate-800 flex items-center justify-between px-6 shrink-0 shadow-sm z-10 transition-colors duration-200">
@@ -399,6 +412,15 @@ function App() {
         bookTitle={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.title || ''}
         currentTags={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.tags?.map((t: Tag) => t.name) || []}
         onSuccess={() => refetch()}
+      />
+
+      <DuplicatesModal
+        isOpen={showDuplicatesModal}
+        onClose={() => setShowDuplicatesModal(false)}
+        onSuccess={() => {
+          refetch();
+          refetchDuplicatesCount();
+        }}
       />
     </div>
   );

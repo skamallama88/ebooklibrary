@@ -103,6 +103,8 @@ class BookUpdate(BaseModel):
 class Book(BookBase):
     id: int
     file_path: str
+    is_duplicate: bool = False
+    duplicate_of_id: Optional[int] = None
     cover_path: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -394,3 +396,7 @@ class AIPromptTemplate(AIPromptTemplateBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+# Duplicate handling schemas
+class DuplicateResolutionRequest(BaseModel):
+    action: str  # keep_original, keep_new, keep_both
