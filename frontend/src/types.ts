@@ -38,6 +38,7 @@ export interface Book {
   last_read?: string;
   created_at?: string;
   added_at?: string;
+  collections?: Collection[];
   // Additional fields used in components
   format?: string;
   file_size?: number;

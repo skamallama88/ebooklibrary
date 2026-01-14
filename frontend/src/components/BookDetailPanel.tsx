@@ -104,7 +104,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                 description: bookData.description || '',
                 authors: bookData.authors?.map((a) => a.name).join(', ') || '',
                 tags: bookData.tags?.map((t) => t.name).join(', ') || '',
-                publisher: bookData.publisher || '',
+                publisher: typeof bookData.publisher === 'string' ? bookData.publisher : bookData.publisher?.name || '',
                 published_date: bookData.publication_date ? new Date(bookData.publication_date).toISOString().split('T')[0] : '',
                 rating: bookData.rating || 0,
             });
@@ -213,7 +213,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                                 className="w-full text-slate-600 dark:text-slate-400 border-b border-blue-500 focus:outline-none bg-transparent"
                                             />
                                         ) : (
-                                            book.authors.map(a => a.name).join(', ') || 'Unknown Author'
+                                            book.authors?.map(a => a.name).join(', ') || 'Unknown Author'
                                         )}
                                     </p>
                                 </div>
@@ -225,7 +225,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-400 dark:text-slate-500">File Size</span>
-                                        <span className="font-medium text-slate-700 dark:text-slate-200">{(book.file_size / (1024 * 1024)).toFixed(2)} MB</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">{( (book.file_size || 0) / (1024 * 1024)).toFixed(2)} MB</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-400 dark:text-slate-500">Word Count</span>
@@ -244,7 +244,11 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                                 className="text-right font-medium text-slate-700 dark:text-slate-200 border-b border-blue-500 focus:outline-none w-1/2 bg-transparent"
                                             />
                                         ) : (
-                                            <span className="font-medium text-slate-700 dark:text-slate-200">{book.publisher || 'N/A'}</span>
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                                                {typeof book.publisher === 'string' 
+                                                    ? book.publisher 
+                                                    : book.publisher?.name || 'N/A'}
+                                            </span>
                                         )}
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -269,7 +273,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                                 max="5"
                                                 step="0.1"
                                                 value={editData.rating}
-                                                onChange={e => setEditData({ ...editData, rating: e.target.value })}
+                                                onChange={e => setEditData({ ...editData, rating: parseFloat(e.target.value) })}
                                                 className="text-right font-medium text-slate-700 dark:text-slate-200 border-b border-blue-500 focus:outline-none w-16 bg-transparent"
                                             />
                                         ) : (
@@ -306,7 +310,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                     </div>
 
                                     <div className="flex flex-wrap gap-1 mb-2">
-                                        {book.collections.map(col => (
+                                        {book.collections?.map(col => (
                                             <span key={col.id} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium flex items-center">
                                                 {col.name}
                                                 <button
@@ -317,7 +321,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                                 </button>
                                             </span>
                                         ))}
-                                        {book.collections.length === 0 && <span className="text-slate-400 dark:text-slate-500 text-xs italic font-normal">Not in any collections</span>}
+                                        {(!book.collections || book.collections.length === 0) && <span className="text-slate-400 dark:text-slate-500 text-xs italic font-normal">Not in any collections</span>}
                                     </div>
 
                                     {showAddCollection && (
@@ -328,7 +332,7 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                                 defaultValue=""
                                             >
                                                 <option value="" disabled>Add to collection...</option>
-                                                {allCollections?.filter((c: Collection) => !book.collections.find((bc: Collection) => bc.id === c.id)).map((col: Collection) => (
+                                                {allCollections?.filter((c: Collection) => !book.collections?.find((bc: Collection) => bc.id === c.id)).map((col: Collection) => (
                                                     <option key={col.id} value={col.id}>{col.name}</option>
                                                 ))}
                                             </select>
@@ -347,12 +351,12 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
                                         />
                                     ) : (
                                         <div className="flex flex-wrap gap-1">
-                                            {book.tags.map(tag => (
+                                            {book.tags?.map(tag => (
                                                 <span key={tag.id} className={`px-2 py-0.5 rounded-full text-xs font-medium ${tagTypeColors[tag.type || 'general'] || tagTypeColors.general}`}>
                                                     {tag.name}
                                                 </span>
                                             ))}
-                                            {book.tags.length === 0 && <span className="text-slate-400 dark:text-slate-500 text-xs italic">No tags</span>}
+                                            {(!book.tags || book.tags.length === 0) && <span className="text-slate-400 dark:text-slate-500 text-xs italic">No tags</span>}
                                         </div>
                                     )}
                                 </div>
