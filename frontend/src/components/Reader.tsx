@@ -921,7 +921,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                                         onClick={() => jumpTo(bookmark.cfi)}
                                     >
                                         <div className="font-medium truncate">{bookmark.label || 'Untitled Bookmark'}</div>
-                                        <div className="text-xs text-slate-400 mt-0.5">{new Date(bookmark.created_at).toLocaleString()}</div>
+                                        <div className="text-xs text-slate-400 mt-0.5">{bookmark.created_at ? new Date(bookmark.created_at).toLocaleString() : ''}</div>
                                     </button>
                                     <button
                                         onClick={(e) => deleteBookmark(bookmark.id, e)}
