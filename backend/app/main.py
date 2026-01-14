@@ -11,6 +11,7 @@ from .logging_config import setup_logging, get_logger
 from .config import settings
 from .exceptions import BookLibraryException
 from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 import os
 import uuid
 
@@ -22,7 +23,47 @@ logger = get_logger(__name__)
 if os.environ.get("ENV") != "testing":
     models.Base.metadata.create_all(bind=database.engine)
 
-app = FastAPI(title="Ebook Library API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Seed data
+    db = database.SessionLocal()
+    try:
+        # Check if we should force-reset the admin password
+        reset_admin = settings.reset_admin_password
+        
+        # Create or update default admin user
+        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+        if not admin_user:
+            hashed_password = auth_service.get_password_hash("admin")
+            new_admin = models.User(
+                username="admin",
+                email="admin@example.com",
+                hashed_password=hashed_password,
+                is_active=True,
+                is_admin=True
+            )
+            db.add(new_admin)
+            db.commit()
+            logger.info("Default admin user created successfully (username: admin, password: admin)")
+        elif reset_admin:
+            admin_user.hashed_password = auth_service.get_password_hash("admin")
+            db.commit()
+            logger.info("Admin password reset to default 'admin'")
+        else:
+            logger.info("Admin user already exists. Set RESET_ADMIN_PASSWORD=true to reset credentials.")
+    except Exception as e:
+        logger.error(f"Error during startup seeding: {e}", exc_info=True)
+    finally:
+        db.close()
+    
+    yield
+    # Shutdown logic (if any) can go here
+
+app = FastAPI(
+    title="Ebook Library API", 
+    version="0.1.0",
+    lifespan=lifespan
+)
 
 # Add rate limiter to app state
 app.state.limiter = limiter
@@ -54,38 +95,6 @@ async def custom_exception_handler(request: Request, exc: BookLibraryException):
             "request_id": getattr(request.state, "request_id", None)
         }
     )
-
-@app.on_event("startup")
-async def seed_data():
-    db = database.SessionLocal()
-    try:
-        # Check if we should force-reset the admin password
-        reset_admin = settings.reset_admin_password
-        
-        # Create or update default admin user
-        admin_user = db.query(models.User).filter(models.User.username == "admin").first()
-        if not admin_user:
-            hashed_password = auth_service.get_password_hash("admin")
-            new_admin = models.User(
-                username="admin",
-                email="admin@example.com",
-                hashed_password=hashed_password,
-                is_active=True,
-                is_admin=True
-            )
-            db.add(new_admin)
-            db.commit()
-            logger.info("Default admin user created successfully (username: admin, password: admin)")
-        elif reset_admin:
-            admin_user.hashed_password = auth_service.get_password_hash("admin")
-            db.commit()
-            logger.info("Admin password reset to default 'admin'")
-        else:
-            logger.info("Admin user already exists. Set RESET_ADMIN_PASSWORD=true to reset credentials.")
-    except Exception as e:
-        logger.error(f"Error during startup seeding: {e}", exc_info=True)
-    finally:
-        db.close()
 
 # CORS configuration with environment-based origins
 allow_all = settings.allow_all_origins

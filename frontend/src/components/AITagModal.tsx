@@ -3,6 +3,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, SparklesIcon, TagIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 import api from '../api';
 
+import type { AIPromptTemplate } from '../types';
+
 interface AITagModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -39,13 +41,13 @@ const AITagModal: React.FC<AITagModalProps> = ({
     // Results
     const [suggestedTags, setSuggestedTags] = useState<SuggestedTag[]>([]);
     const [appliedLimits, setAppliedLimits] = useState<Record<string, number>>({});
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<AIPromptTemplate[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<number | 'default'>('default');
 
     useEffect(() => {
         if (isOpen) {
             api.get('/ai/templates/').then(res => {
-                const tagTemplates = res.data.filter((t: any) => t.type === 'tags');
+                const tagTemplates = res.data.filter((t: AIPromptTemplate) => t.type === 'tags');
                 setTemplates(tagTemplates);
             }).catch(err => console.error("Failed to load templates", err));
         }
@@ -75,9 +77,10 @@ const AITagModal: React.FC<AITagModalProps> = ({
             setSuggestedTags(tags);
             setAppliedLimits(res.data.applied_limits || {});
             setShowPreview(true);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to generate tags:', err);
-            setError(err.response?.data?.detail || 'Failed to generate tags. Make sure an AI provider is configured and active.');
+            const errorMessage = (err as any).response?.data?.detail || 'Failed to generate tags. Make sure an AI provider is configured and active.';
+            setError(errorMessage);
         } finally {
             setGenerating(false);
         }

@@ -23,15 +23,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (token) {
-            fetchUser();
-        } else {
-            setIsLoading(false);
-        }
-    }, [token]);
+    const logout = React.useCallback(() => {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+    }, []);
 
-    const fetchUser = async () => {
+    const fetchUser = React.useCallback(async () => {
         try {
             const response = await api.get('/auth/me');
             setUser(response.data);
@@ -41,18 +39,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [logout]);
+
+    useEffect(() => {
+        if (token) {
+            fetchUser();
+        } else {
+            setIsLoading(false);
+        }
+    }, [token, fetchUser]);
 
     const login = async (newToken: string) => {
         localStorage.setItem('token', newToken);
         setToken(newToken);
         await fetchUser();
-    };
-
-    const logout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
-        setUser(null);
     };
 
     return (

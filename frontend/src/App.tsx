@@ -18,6 +18,7 @@ import AITagModal from './components/AITagModal';
 import api from './api';
 import { useAuth } from './AuthContext';
 import LoginPage from './pages/LoginPage';
+import type { Book, SortingState } from './types';
 import './index.css';
 
 function App() {
@@ -31,7 +32,7 @@ function App() {
   const [readerBookId, setReaderBookId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editBookId, setEditBookId] = useState<number | null>(null);
-  const [sorting, setSorting] = useState<any[]>([]);
+  const [sorting, setSorting] = useState<SortingState[]>([]);
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showTagManagement, setShowTagManagement] = useState(false);
@@ -79,7 +80,7 @@ function App() {
     queryKey: ['books', searchTerm, activeFilter, page, sorting],
     enabled: !!user,
     queryFn: async () => {
-      const params: any = {
+      const params: Record<string, any> = {
         skip: page * limit,
         limit,
       };
@@ -132,7 +133,7 @@ function App() {
     try {
       // Get current collection and add new books
       const colRes = await api.get(`/collections/${colId}`);
-      const currentBookIds = colRes.data.books.map((b: any) => b.id);
+      const currentBookIds = colRes.data.books.map((b: Book) => b.id);
       const newBookIds = Array.from(new Set([...currentBookIds, ...ids]));
       await api.patch(`/collections/${colId}`, { book_ids: newBookIds });
       alert("Books added to collection");

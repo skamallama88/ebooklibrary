@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import type { AIPromptTemplate } from '../types';
 import { PlusIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
-
-interface AIPromptTemplate {
-    id: number;
-    name: string;
-    type: string; // 'summary' | 'tags'
-    template: string;
-    is_default: boolean;
-    description?: string;
-}
 
 const AITemplateManager: React.FC = () => {
     const [templates, setTemplates] = useState<AIPromptTemplate[]>([]);
@@ -64,9 +56,10 @@ const AITemplateManager: React.FC = () => {
             setEditing(null);
             setIsCreating(false);
             setFormData({});
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.response?.data?.detail || 'Failed to save template');
+            const errorMessage = (err as any).response?.data?.detail || 'Failed to save template';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }

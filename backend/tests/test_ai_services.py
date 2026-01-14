@@ -33,7 +33,7 @@ def test_load_active_provider_no_config(mock_load, test_db):
 def test_ai_provider_config_crud(test_db):
     """Test creating and retrieving AI provider configuration"""
     config = models.AIProviderConfig(
-        provider_name="ollama",
+        provider_type="ollama",
         base_url="http://localhost:11434",
         model_name="llama2",
         is_active=True
@@ -44,7 +44,7 @@ def test_ai_provider_config_crud(test_db):
     test_db.refresh(config)
     
     assert config.id is not None
-    assert config.provider_name == "ollama"
+    assert config.provider_type == "ollama"
     assert config.is_active is True
     
     # Retrieve active provider
@@ -99,8 +99,8 @@ def test_ai_prompt_template_crud(test_db, test_user):
     """Test creating and using AI prompt templates"""
     template = models.AIPromptTemplate(
         name="Test Summary Template",
-        template_type="summary",
-        content="Summarize this book: {title}",
+        type="summary",
+        template="Summarize this book: {title}",
         user_id=test_user.id,
         is_default=False
     )
@@ -110,16 +110,16 @@ def test_ai_prompt_template_crud(test_db, test_user):
     test_db.refresh(template)
     
     assert template.id is not None
-    assert template.template_type == "summary"
+    assert template.type == "summary"
     
     # Test retrieval
     retrieved = test_db.query(models.AIPromptTemplate).filter(
-        models.AIPromptTemplate.template_type == "summary",
+        models.AIPromptTemplate.type == "summary",
         models.AIPromptTemplate.user_id == test_user.id
     ).first()
     
     assert retrieved is not None
-    assert retrieved.content == "Summarize this book: {title}"
+    assert retrieved.template == "Summarize this book: {title}"
 
 
 @pytest.mark.unit

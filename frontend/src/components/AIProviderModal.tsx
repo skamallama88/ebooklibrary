@@ -72,9 +72,10 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
             if (res.data.models.length > 0 && !formData.model_name) {
                 setFormData(prev => ({ ...prev, model_name: res.data.models[0].name }));
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to discover models:', err);
-            setError(err.response?.data?.detail || 'Failed to discover models. Is Ollama running?');
+            const errorMessage = (err as any).response?.data?.detail || 'Failed to discover models. Is Ollama running?';
+            setError(errorMessage);
         } finally {
             setDiscovering(false);
         }
@@ -106,9 +107,10 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
                 extraction_strategy: 'smart_sampling'
             });
             setAvailableModels([]);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to add provider:', err);
-            setError(err.response?.data?.detail || 'Failed to add provider');
+            const errorMessage = (err as any).response?.data?.detail || 'Failed to add provider';
+            setError(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -127,11 +129,12 @@ const AIProviderModal: React.FC<AIProviderModalProps> = ({ isOpen, onClose }) =>
         try {
             const res = await api.get(`/ai/providers/${id}/test`);
             setTestResults(prev => ({ ...prev, [id]: res.data }));
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to test provider:', err);
+            const errorMessage = (err as any).response?.data?.detail || 'Test failed';
             setTestResults(prev => ({ 
                 ...prev, 
-                [id]: { status: 'error', message: err.response?.data?.detail || 'Test failed' }
+                [id]: { status: 'error', message: errorMessage }
             }));
         }
     };

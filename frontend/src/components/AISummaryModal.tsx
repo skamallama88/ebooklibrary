@@ -3,6 +3,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import api from '../api';
 
+import type { AIPromptTemplate } from '../types';
+
 interface AISummaryModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -27,13 +29,13 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
     const [showPreview, setShowPreview] = useState(false);
     const [overwriteExisting, setOverwriteExisting] = useState(false);
     const [extractionStrategy, setExtractionStrategy] = useState('smart_sampling');
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<AIPromptTemplate[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<number | 'default'>('default');
 
     useEffect(() => {
         if (isOpen) {
             api.get('/ai/templates/').then(res => {
-                const summaryTemplates = res.data.filter((t: any) => t.type === 'summary');
+                const summaryTemplates = res.data.filter((t: AIPromptTemplate) => t.type === 'summary');
                 setTemplates(summaryTemplates);
             }).catch(err => console.error("Failed to load templates", err));
         }
@@ -57,9 +59,10 @@ const AISummaryModal: React.FC<AISummaryModalProps> = ({
             setGeneratedSummary(res.data.summary);
             setOriginalSummary(res.data.original_summary);
             setShowPreview(true);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Failed to generate summary:', err);
-            setError(err.response?.data?.detail || 'Failed to generate summary. Make sure an AI provider is configured and active.');
+            const errorMessage = (err as any).response?.data?.detail || 'Failed to generate summary. Make sure an AI provider is configured and active.';
+            setError(errorMessage);
         } finally {
             setGenerating(false);
         }

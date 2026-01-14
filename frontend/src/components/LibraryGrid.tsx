@@ -9,22 +9,14 @@ import {
     type ColumnDef,
     type VisibilityState,
     type ColumnSizingState,
+    type HeaderContext,
+    type CellContext,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { clsx } from 'clsx';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import MobileBookCard from './MobileBookCard';
-
-interface Author {
-    id: number;
-    name: string;
-}
-
-interface Tag {
-    id: number;
-    name: string;
-    type?: string;
-}
+import type { Book, Tag } from '../types';
 
 const tagTypeColors: Record<string, string> = {
     genre: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -36,25 +28,6 @@ const tagTypeColors: Record<string, string> = {
     meta: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
     general: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-400',
 };
-
-interface Book {
-    id: number;
-    title: string;
-    authors: Author[];
-    tags: Tag[];
-    format: string;
-    file_size: number;
-    created_at: string;
-    rating: number;
-    published_date?: string;
-    publisher?: string;
-    series?: string;
-    series_index?: number;
-    progress_percentage?: number;
-    is_read?: boolean;
-    last_read?: string;
-    word_count?: number;
-}
 
 const columnHelper = createColumnHelper<Book>();
 
@@ -80,7 +53,6 @@ const IndeterminateCheckbox = ({
         />
     )
 }
-
 
 interface LibraryGridProps {
     data: Book[];
@@ -150,7 +122,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             id: 'select',
             size: 48,
             enableResizing: false,
-            header: ({ table }: any) => (
+            header: ({ table }: HeaderContext<Book, unknown>) => (
                 <div className="flex justify-center w-full">
                     <IndeterminateCheckbox
                         {...{
@@ -161,7 +133,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                     />
                 </div>
             ),
-            cell: ({ row }: any) => (
+            cell: ({ row }: CellContext<Book, unknown>) => (
                 <div className="flex justify-center w-full" onClick={(e) => e.stopPropagation()}>
                     <IndeterminateCheckbox
                         {...{
@@ -267,14 +239,23 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
             minSize: 100,
             cell: (info) => {
                 const publisher = info.getValue();
-                return publisher ? <span className="text-slate-600 dark:text-slate-400">{publisher}</span> : <span className="text-slate-400 dark:text-slate-600">—</span>;
+                let publisherName = '';
+                if (typeof publisher === 'string') {
+                    publisherName = publisher;
+                } else if (publisher && typeof publisher === 'object' && 'name' in publisher) {
+                    publisherName = publisher.name;
+                }
+                return publisherName ? <span className="text-slate-600 dark:text-slate-400">{publisherName}</span> : <span className="text-slate-400 dark:text-slate-600">—</span>;
             },
         }) as ColumnDef<Book>,
         columnHelper.accessor('created_at', {
             header: 'Date Added',
             size: 120,
             minSize: 100,
-            cell: (info) => <span className="text-slate-500 dark:text-slate-500 text-sm whitespace-nowrap">{new Date(info.getValue()).toLocaleDateString()}</span>,
+            cell: (info) => {
+                const date = info.getValue();
+                return date ? <span className="text-slate-500 dark:text-slate-500 text-sm whitespace-nowrap">{new Date(date).toLocaleDateString()}</span> : <span className="text-slate-400 dark:text-slate-600">—</span>;
+            },
         }) as ColumnDef<Book>,
         columnHelper.accessor('word_count', {
             header: 'Words',

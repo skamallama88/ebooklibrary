@@ -98,10 +98,11 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                     ...prev,
                     [file.name]: { ...prev[file.name], status: 'success', progress: 100 }
                 }));
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const apiError = err as { response?: { data?: { detail?: string } } };
                 setUploadStatuses(prev => ({
                     ...prev,
-                    [file.name]: { ...prev[file.name], status: 'error', progress: 0, error: err.response?.data?.detail || "Upload failed" }
+                    [file.name]: { ...prev[file.name], status: 'error', progress: 0, error: apiError.response?.data?.detail || "Upload failed" }
                 }));
             }
         });

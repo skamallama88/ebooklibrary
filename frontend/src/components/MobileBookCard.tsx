@@ -2,26 +2,7 @@ import React from 'react';
 import { clsx } from 'clsx';
 import api from '../api';
 
-interface Author {
-    id: number;
-    name: string;
-}
-
-interface Tag {
-    id: number;
-    name: string;
-}
-
-interface Book {
-    id: number;
-    title: string;
-    authors: Author[];
-    tags: Tag[];
-    format: string;
-    progress_percentage?: number;
-    is_read?: boolean;
-    cover_url?: string;
-}
+import type { Book } from '../types';
 
 interface MobileBookCardProps {
     book: Book;
@@ -36,9 +17,9 @@ const MobileBookCard: React.FC<MobileBookCardProps> = ({
     onClick,
     showThumbnails = true,
 }) => {
-    const authorNames = book.authors.map(a => a.name).join(', ');
-    const visibleTags = book.tags.slice(0, 3);
-    const remainingTagsCount = book.tags.length - visibleTags.length;
+    const authorNames = book.authors?.map(a => a.name).join(', ') || '';
+    const visibleTags = book.tags?.slice(0, 3) || [];
+    const remainingTagsCount = (book.tags?.length || 0) - visibleTags.length;
 
     // Format badge color based on file type
     const getFormatColor = (format: string) => {
@@ -91,9 +72,9 @@ const MobileBookCard: React.FC<MobileBookCardProps> = ({
                     </h3>
                     <span className={clsx(
                         'shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase',
-                        getFormatColor(book.format)
+                        getFormatColor(book.format || '')
                     )}>
-                        {book.format}
+                        {book.format || '???'}
                     </span>
                 </div>
 
@@ -105,7 +86,7 @@ const MobileBookCard: React.FC<MobileBookCardProps> = ({
                 )}
 
                 {/* Tags */}
-                {book.tags.length > 0 && (
+                {book.tags && book.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                         {visibleTags.map(tag => (
                             <span

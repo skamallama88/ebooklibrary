@@ -4,15 +4,16 @@ import api from '../api';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { clsx } from 'clsx';
 
-interface Author {
-    id: number;
-    name: string;
-}
+import type { Book, Collection } from '../types';
 
-interface Tag {
-    id: number;
-    name: string;
-    type?: string;
+interface EditData {
+    title: string;
+    description: string;
+    authors: string;
+    tags: string;
+    publisher: string;
+    published_date: string;
+    rating: number;
 }
 
 const tagTypeColors: Record<string, string> = {
@@ -26,29 +27,6 @@ const tagTypeColors: Record<string, string> = {
     general: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-400',
 };
 
-interface Collection {
-    id: number;
-    name: string;
-}
-
-interface Book {
-    id: number;
-    title: string;
-    authors: Author[];
-    tags: Tag[];
-    collections: Collection[];
-    format: string;
-    file_size: number;
-    created_at: string;
-    description?: string;
-    publisher?: string;
-    language?: string;
-    published_date?: string;
-    rating: number;
-    cover_path?: string;
-    word_count?: number;
-}
-
 interface BookDetailPanelProps {
     bookId: number | null;
     onClose: () => void;
@@ -61,9 +39,9 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
     const [book, setBook] = useState<Book | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [editData, setEditData] = useState<any>({});
+    const [editData, setEditData] = useState<EditData>({} as EditData);
     const [showAddCollection, setShowAddCollection] = useState(false);
-    const [allCollections, setAllCollections] = useState<any[]>([]);
+    const [allCollections, setAllCollections] = useState<Collection[]>([]);
 
     useEffect(() => {
         if (bookId) {
@@ -119,15 +97,16 @@ const BookDetailPanel: React.FC<BookDetailPanelProps> = ({ bookId, onClose, onUp
         setIsLoading(true);
         try {
             const response = await api.get(`/books/${id}`);
-            setBook(response.data);
+            const bookData: Book = response.data;
+            setBook(bookData);
             setEditData({
-                title: response.data.title,
-                description: response.data.description || '',
-                authors: response.data.authors.map((a: any) => a.name).join(', '),
-                tags: response.data.tags.map((t: any) => t.name).join(', '),
-                publisher: response.data.publisher || '',
-                published_date: response.data.published_date ? new Date(response.data.published_date).toISOString().split('T')[0] : '',
-                rating: response.data.rating || 0,
+                title: bookData.title,
+                description: bookData.description || '',
+                authors: bookData.authors?.map((a) => a.name).join(', ') || '',
+                tags: bookData.tags?.map((t) => t.name).join(', ') || '',
+                publisher: bookData.publisher || '',
+                published_date: bookData.publication_date ? new Date(bookData.publication_date).toISOString().split('T')[0] : '',
+                rating: bookData.rating || 0,
             });
         } catch (error) {
             console.error("Failed to fetch book", error);
