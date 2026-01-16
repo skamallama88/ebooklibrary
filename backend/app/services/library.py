@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from .metadata import extract_metadata
 from .text_extractor import TextExtractor
+from .tag_import import TagImportService
 from datetime import datetime
 
 BOOK_STORAGE_PATH = os.getenv("BOOK_STORAGE_PATH", "/data/books")
@@ -42,7 +43,6 @@ def import_book(db: Session, file_path: str):
         duplicate_of_id = existing_book.id
 
     # Create or get authors
-    # ... (omitted for brevity in logic but I'll include it in actual replacement)
     authors = []
     for author_name in metadata.get("authors", []):
         author = db.query(models.Author).filter(models.Author.name == author_name).first()
@@ -51,17 +51,7 @@ def import_book(db: Session, file_path: str):
             db.add(author)
             db.flush()
         authors.append(author)
-    
-    # Create or get tags
-    tags = []
-    for tag_name in metadata.get("tags", []):
-        tag = db.query(models.Tag).filter(models.Tag.name == tag_name).first()
-        if not tag:
-            tag = models.Tag(name=tag_name)
-            db.add(tag)
-            db.flush()
-        tags.append(tag)
-        
+
     # Create book record
     new_book = models.Book(
         title=title,
@@ -76,11 +66,16 @@ def import_book(db: Session, file_path: str):
         word_count=word_count,
         is_duplicate=is_duplicate,
         duplicate_of_id=duplicate_of_id,
-        authors=authors,
-        tags=tags
+        authors=authors
     )
     
     db.add(new_book)
+    db.flush() # Flush to get book ID
+    
+    # Process metadata into tags using TagImportService
+    tag_service = TagImportService(db)
+    tag_service.process_metadata_to_tags(new_book.id, metadata)
+    
     db.commit()
     db.refresh(new_book)
     return new_book

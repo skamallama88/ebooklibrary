@@ -11,6 +11,7 @@ import UserManagementModal from './components/UserManagementModal';
 import TagManagementModal from './components/TagManagementModal';
 import DuplicatesModal from './components/DuplicatesModal';
 import Topbar from './components/Topbar';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import TagSearch from './components/TagSearch';
 import AIProviderModal from './components/AIProviderModal';
@@ -30,8 +31,10 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [selectedBookIds, setSelectedBookIds] = useState<number[]>([]);
+  const [focusedBookId, setFocusedBookId] = useState<number | null>(null);
   const [readerBookId, setReaderBookId] = useState<number | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editBookId, setEditBookId] = useState<number | null>(null);
   const [sorting, setSorting] = useState<SortingState[]>([]);
   const [showUserSettings, setShowUserSettings] = useState(false);
@@ -128,10 +131,11 @@ function App() {
   });
 
   const handleDeleteBooks = async (ids: number[]) => {
-    if (!confirm(`Are you sure you want to delete ${ids.length} book(s)?`)) return;
     try {
       await api.delete('/books/bulk', { data: ids });
       setSelectedBookIds([]);
+      setFocusedBookId(null);
+      setShowDeleteConfirm(false);
       refetch();
     } catch (err) {
       console.error("Failed to delete books", err);
@@ -243,7 +247,7 @@ function App() {
               window.open(`${api.defaults.baseURL}/books/${id}/file`, '_blank');
             });
           }}
-          onDeleteBooks={handleDeleteBooks}
+          onDeleteBooks={() => setShowDeleteConfirm(true)}
           onAddToCollection={handleAddToCollection}
           onRead={(id) => setReaderBookId(id)}
           darkMode={darkMode}
@@ -305,8 +309,9 @@ function App() {
               <LibraryGrid
                 data={books?.items || []}
                 isLoading={isLoading}
+                focusedBookId={focusedBookId}
                 selectedBookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-                onRowClick={(book) => setSelectedBookIds([book.id])}
+                onRowClick={(book) => setFocusedBookId(book.id)}
                 onSelectionChange={setSelectedBookIds}
                 sorting={sorting}
                 onSortingChange={setSorting}
@@ -340,8 +345,8 @@ function App() {
         </div>
 
         <BookDetailPanel
-          bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-          onClose={() => setSelectedBookIds([])}
+          bookId={focusedBookId}
+          onClose={() => setFocusedBookId(null)}
           onUpdate={() => refetch()}
           onRead={(id) => setReaderBookId(id)}
         />
@@ -399,18 +404,18 @@ function App() {
       <AISummaryModal
         isOpen={showAISummaryModal}
         onClose={() => setShowAISummaryModal(false)}
-        bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-        bookTitle={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.title || ''}
-        currentSummary={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.description || ''}
+        bookId={focusedBookId}
+        bookTitle={books?.items?.find((b: Book) => b.id === focusedBookId)?.title || ''}
+        currentSummary={books?.items?.find((b: Book) => b.id === focusedBookId)?.description || ''}
         onSuccess={() => refetch()}
       />
 
       <AITagModal
         isOpen={showAITagModal}
         onClose={() => setShowAITagModal(false)}
-        bookId={selectedBookIds.length === 1 ? selectedBookIds[0] : null}
-        bookTitle={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.title || ''}
-        currentTags={books?.items?.find((b: Book) => b.id === selectedBookIds[0])?.tags?.map((t: Tag) => t.name) || []}
+        bookId={focusedBookId}
+        bookTitle={books?.items?.find((b: Book) => b.id === focusedBookId)?.title || ''}
+        currentTags={books?.items?.find((b: Book) => b.id === focusedBookId)?.tags?.map((t: Tag) => t.name) || []}
         onSuccess={() => refetch()}
       />
 
@@ -421,6 +426,13 @@ function App() {
           refetch();
           refetchDuplicatesCount();
         }}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => handleDeleteBooks(selectedBookIds)}
+        books={(books?.items || []).filter((b: Book) => selectedBookIds.includes(b.id))}
       />
     </div>
   );

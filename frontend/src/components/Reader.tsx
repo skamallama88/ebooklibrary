@@ -637,6 +637,7 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
     }, [toc, format, numPages]);
 
     const readerBg = theme === 'sepia' ? 'bg-[#f4ecd8]' : theme === 'dark' ? 'bg-[#121212]' : 'bg-white';
+    const readerText = theme === 'sepia' ? 'text-[#5b4636]' : theme === 'dark' ? 'text-[#e0e0e0]' : 'text-[#1a1a1b]';
     const containerBg = theme === 'sepia' ? 'bg-[#ebe4d1]' : theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-slate-100';
 
     return (
@@ -1001,7 +1002,8 @@ const Reader: React.FC<ReaderProps> = ({ bookId, onClose }) => {
                 ) : ['txt', 'rtf', 'mobi'].includes(format || '') ? (
                     <div className={clsx("w-full h-full overflow-y-auto p-8 md:p-12 leading-relaxed whitespace-pre-wrap transition-all duration-300 mx-auto",
                         flowMode === 'scrolled' ? "max-w-4xl" : "max-w-2xl",
-                        readerBg)}
+                        readerBg,
+                        readerText)}
                         style={{
                             fontSize: `${fontSize}%`,
                             fontFamily: fontFamily === 'serif' ? 'Georgia, serif' : 'system-ui, -apple-system, sans-serif'

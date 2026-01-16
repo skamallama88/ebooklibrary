@@ -101,13 +101,13 @@ class Book(Base):
     
     authors = relationship("Author", secondary=book_authors, back_populates="books")
     tags = relationship("Tag", secondary=book_tags, back_populates="books")
-    progress = relationship("ReadingProgress", back_populates="book")
+    progress = relationship("ReadingProgress", back_populates="book", cascade="all, delete-orphan", passive_deletes=True)
     collections = relationship("Collection", secondary=collection_books, back_populates="books")
-    bookmarks = relationship("Bookmark", back_populates="book")
+    bookmarks = relationship("Bookmark", back_populates="book", cascade="all, delete-orphan", passive_deletes=True)
     
     # Duplicate handling
     is_duplicate = Column(Boolean, default=False)
-    duplicate_of_id = Column(Integer, ForeignKey("books.id"), nullable=True)
+    duplicate_of_id = Column(Integer, ForeignKey("books.id", ondelete="SET NULL"), nullable=True)
     duplicate_of = relationship("Book", remote_side=[id])
 
 class Collection(Base):
@@ -124,7 +124,7 @@ class ReadingProgress(Base):
     __tablename__ = "reading_progress"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
     cfi = Column(String) # For EPUB reading position
     percentage = Column(Float, default=0.0)
     last_read = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -137,7 +137,7 @@ class Bookmark(Base):
     __tablename__ = "bookmarks"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
     cfi = Column(String, nullable=False)
     label = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

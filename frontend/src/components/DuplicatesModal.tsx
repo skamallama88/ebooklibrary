@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { XMarkIcon, DocumentDuplicateIcon, CheckCircleIcon, TrashIcon, ArrowsUpDownIcon, Square2StackIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, TrashIcon, Square2StackIcon } from '@heroicons/react/24/outline';
 import api from '../api';
 import type { Book } from '../types';
 import { clsx } from 'clsx';
@@ -88,22 +88,7 @@ const DuplicatesModal: React.FC<DuplicatesModalProps> = ({
         }
     };
 
-    const formatSize = (bytes?: number) => {
-        if (!bytes) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return 'Unknown';
-        try {
-            return new Date(dateStr).toLocaleDateString();
-        } catch (e) {
-            return dateStr;
-        }
-    };
 
     return (
         <Transition appear show={isOpen} as={Fragment}>

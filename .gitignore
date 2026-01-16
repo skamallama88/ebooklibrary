@@ -11,6 +11,9 @@ node_modules/
 dist/
 build/
 *.sqlite3
+*.db
+.coverage
+coverage.xml
 data/
 *.log
 .vscode/

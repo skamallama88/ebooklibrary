@@ -57,7 +57,8 @@ const IndeterminateCheckbox = ({
 interface LibraryGridProps {
     data: Book[];
     isLoading?: boolean;
-    selectedBookId?: number | null;
+    selectedBookId?: number | null; // Keep for backward compatibility if needed, but we'll use focusedBookId
+    focusedBookId?: number | null;
     onRowClick?: (book: Book) => void;
     onSelectionChange?: (selectedIds: number[]) => void;
     sorting?: SortingState;
@@ -68,6 +69,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
     data,
     isLoading,
     selectedBookId,
+    focusedBookId,
     onRowClick,
     onSelectionChange,
     sorting = [],
@@ -387,6 +389,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
         onColumnVisibilityChange: setColumnVisibility,
         onColumnSizingChange: setColumnSizing,
         getCoreRowModel: getCoreRowModel(),
+        getRowId: row => row.id.toString(),
         manualSorting: true,
         columnResizeMode: 'onChange',
         enableColumnResizing: true,
@@ -395,12 +398,14 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
     // Notify parent of selection changes
     React.useEffect(() => {
         if (onSelectionChange) {
+            // Since we use getRowId: row => row.id.toString(), 
+            // the keys in rowSelection are the book IDs as strings.
             const selectedIds = Object.keys(rowSelection)
-                .map(index => data[parseInt(index)]?.id)
-                .filter(id => id !== undefined);
+                .map(idStr => parseInt(idStr))
+                .filter(id => !isNaN(id));
             onSelectionChange(selectedIds);
         }
-    }, [rowSelection, data, onSelectionChange]);
+    }, [rowSelection, onSelectionChange]);
 
     const parentRef = useRef<HTMLDivElement>(null);
     const { rows } = table.getRowModel();
@@ -599,7 +604,7 @@ const LibraryGrid: React.FC<LibraryGridProps> = ({
                                 className={clsx(
                                     "flex items-center transition-colors cursor-pointer border-b border-slate-50 dark:border-slate-800 group-last:border-none",
                                     row.getIsSelected() ? "bg-blue-50/80 dark:bg-blue-900/40" :
-                                        selectedBookId === row.original.id ? "bg-blue-50/80 dark:bg-blue-900/20" :
+                                        (focusedBookId === row.original.id || selectedBookId === row.original.id) ? "bg-blue-50/80 dark:bg-blue-900/20" :
                                             "hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
                                 )}
                                 style={{

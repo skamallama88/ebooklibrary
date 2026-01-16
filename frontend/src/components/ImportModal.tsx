@@ -208,15 +208,19 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onSuccess })
                                 </div>
                                 {uploadStatuses[file.name]?.status === 'success' ? (
                                     <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
-                                ) : uploadStatuses[file.name]?.status === 'error' ? (
-                                    <ExclamationCircleIcon className="w-6 h-6 text-red-500" />
                                 ) : (
-                                    <button
-                                        onClick={() => removeFile(file.name)}
-                                        className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 group-hover:text-red-500"
-                                    >
-                                        <XMarkIcon className="w-5 h-5" />
-                                    </button>
+                                    <div className="flex items-center space-x-1">
+                                        {uploadStatuses[file.name]?.status === 'error' && (
+                                            <ExclamationCircleIcon className="w-6 h-6 text-red-500" />
+                                        )}
+                                        <button
+                                            onClick={() => removeFile(file.name)}
+                                            className="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-400 dark:text-slate-500 group-hover:text-red-500"
+                                            title="Remove"
+                                        >
+                                            <XMarkIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         ))}
